@@ -1,7 +1,13 @@
 {
-  "name": "compiler-web",
+  "name": "cc-studio",
   "version": "1.0.0",
   "description": "Browser-based C/C++ console that compiles and runs code in sandboxed Docker containers",
+  "author": "hhsonet (https://github.com/hhsonet)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hhsonet/cc-studio.git"
+  },
+  "homepage": "https://github.com/hhsonet/cc-studio#readme",
   "main": "server.js",
   "private": true,
   "engines": {
