@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Browser-based C/C++ console that compiles and runs code in sandboxed Docker containers",
   "author": "hhsonet (https://github.com/hhsonet)",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hhsonet/cc-studio.git"

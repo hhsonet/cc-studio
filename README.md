@@ -300,10 +300,10 @@ To check the real thing end to end, start the app with Docker access and run a p
 
 - [Monaco Editor](https://github.com/microsoft/monaco-editor) (MIT), loaded from jsDelivr.
 - [clang-format](https://clang.llvm.org/docs/ClangFormat.html) from LLVM (Apache-2.0 with LLVM exceptions),
-  as WebAssembly via [`@wasm-fmt/clang-format`](https://github.com/wasm-fmt/clang-format) (MIT). See
-  `public/vendor/clang-format/`.
+  as WebAssembly via [`@wasm-fmt/clang-format`](https://github.com/wasm-fmt/clang-format) (MIT). Both license
+  texts are in `public/vendor/clang-format/`.
 - [IBM Plex Sans](https://github.com/IBM/plex) and [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono)
-  (SIL Open Font License), self-hosted.
+  (SIL Open Font License 1.1), self-hosted; license texts in `public/fonts/`.
 - The visual design follows a "C Compiler" design made in Claude Design.
 - The compiler is `gcc`, from the official [`gcc` Docker image](https://hub.docker.com/_/gcc).
 
@@ -311,5 +311,9 @@ Built by [hhsonet](https://github.com/hhsonet).
 
 ## License
 
-No license has been chosen for this project yet, so by default all rights are reserved. Add a `LICENSE`
-file to change that. The third-party pieces above keep their own licenses.
+[MIT](LICENSE), Copyright (c) 2026 hhsonet.
+
+The third-party pieces keep their own licenses, and their license texts are included next to the files they
+cover: `public/fonts/IBM-Plex-OFL.txt`, `public/fonts/JetBrains-Mono-OFL.txt`,
+`public/vendor/clang-format/LICENSE` (the WebAssembly wrapper, MIT) and
+`public/vendor/clang-format/LLVM-LICENSE.txt` (clang-format itself, Apache-2.0 with LLVM exceptions).
