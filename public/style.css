@@ -1,0 +1,208 @@
+/* cc-studio: layout and colors follow the "C Compiler" design. Palette variables are set from
+   app.js (theme + accent); the values here are the dark/teal defaults so the first paint is right. */
+:root {
+  --bg: #111314; --bg2: #141617; --bd: #26292a; --bd2: #2f3334;
+  --fg: #d6d9d8; --mu: #9aa19f; --mu2: #7d8584; --mu3: #4f5655;
+  --hov: #1c1f20; --inp: #0d0f10;
+  --warn: #e0a860; --err: #e07a72; --blue: #82b7e0;
+  --kw: #c99bd9; --str: #d9b878; --num: #e0a070; --onac: #0d1211;
+  --ac: #7fc4b0; --ac2: #a6dccd; --acbg: #7fc4b033; --sel: #7fc4b026;
+  --sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--fg); font: 13px/1.4 var(--sans); overflow: hidden; }
+a { color: var(--ac); }
+a:hover { color: var(--ac2); }
+button { font: inherit; color: inherit; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--ac); outline-offset: 1px; }
+[hidden] { display: none !important; }
+.grow { flex: 1; }
+
+.app { height: 100vh; height: 100dvh; display: flex; flex-direction: column; }
+
+/* ---- top bar ---- */
+.topbar { display: flex; align-items: center; gap: 16px; padding: 0 16px; height: 52px; border-bottom: 1px solid var(--bd); flex: none; }
+.sidebtn { width: 30px; height: 30px; padding: 0; display: grid; place-items: center; background: none; border: 1px solid var(--bd2); border-radius: 5px; color: var(--mu); cursor: pointer; }
+.sidebtn:hover { color: var(--ac2); border-color: var(--ac); }
+.sidebtn.small { width: 26px; height: 26px; flex: none; align-self: center; margin: 0 6px 0 2px; }
+.sideicon { display: flex; width: 14px; height: 12px; border: 1.5px solid currentColor; border-radius: 2px; box-sizing: border-box; }
+.sideicon span { width: 4px; border-right: 1.5px solid currentColor; background: currentColor; }
+.sideicon.closed span { background: transparent; }
+/* same icon for the right-hand panel: the filled strip is on the right */
+.sideicon.right { flex-direction: row-reverse; }
+.sideicon.right span { border-right: 0; border-left: 1.5px solid currentColor; }
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
+.logo { width: 18px; height: 18px; display: grid; place-items: center; background: var(--ac); color: var(--onac); font: 600 11px var(--mono); border-radius: 3px; }
+.crumb { font: 12px var(--mono); color: var(--mu); }
+.chip { font: 500 11px var(--mono); color: var(--ac2); background: var(--acbg); border-radius: 4px; padding: 3px 8px; }
+
+.ghost { flex: none; white-space: nowrap; background: none; border: 1px solid var(--bd2); border-radius: 5px; padding: 6px 14px; color: var(--fg); font: 500 13px var(--sans); cursor: pointer; }
+.ghost:hover:not(:disabled) { border-color: var(--ac); color: var(--ac2); }
+.ghost:disabled { opacity: 0.6; cursor: progress; }
+.setting select { background: var(--inp); color: var(--fg); border: 1px solid var(--bd2); border-radius: 5px; padding: 3px 6px; font: 12px var(--sans); }
+.primary {
+  display: inline-flex; align-items: center; gap: 8px; flex: none; white-space: nowrap;
+  background: var(--ac); color: var(--onac); border: 0; border-radius: 5px; padding: 7px 18px;
+  font: 600 13px var(--sans); cursor: pointer;
+}
+.primary:hover { background: var(--ac2); }
+.primary:disabled { opacity: 0.7; cursor: progress; }
+.spinner { width: 12px; height: 12px; border: 2px solid color-mix(in srgb, var(--onac) 30%, transparent); border-top-color: var(--onac); border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---- body: sidebar + main ---- */
+.body { flex: 1; display: flex; min-height: 0; }
+
+.sidebar { width: 240px; flex: none; display: flex; flex-direction: column; border-right: 1px solid var(--bd); background: var(--bg2); transition: width 0.15s ease; }
+/* Collapsed: a slim rail with the toggle, New file, Upload and Settings; file names are hidden. */
+.sidebar.collapsed { width: 48px; }
+.sidebar.collapsed .tree-wrap, .sidebar.collapsed .side-head .grow, .sidebar.collapsed .who, .sidebar.collapsed .caret { display: none; }
+.sidebar.collapsed .side-head { flex: 1; flex-direction: column; align-items: center; height: auto; padding: 8px 0; gap: 4px; border-bottom: 0; }
+.sidebar.collapsed .side-head .sidebtn.small { margin: 0 0 6px; }
+.sidebar.collapsed .user { justify-content: center; padding: 10px 0; }
+.sidebar.collapsed .popover { left: 52px; right: auto; width: 240px; bottom: 8px; }
+.side-head { display: flex; align-items: center; height: 34px; padding: 0 8px 0 14px; border-bottom: 1px solid var(--bd); color: var(--mu); font: 500 11px var(--sans); letter-spacing: 0.08em; text-transform: uppercase; }
+.tiny { width: 26px; height: 26px; background: none; border: 0; border-radius: 4px; color: var(--mu); font: 16px var(--mono); cursor: pointer; }
+.tiny:hover { background: var(--hov); color: var(--ac2); }
+.tree-wrap { flex: 1; overflow: auto; padding: 6px 0; }
+.add-row { padding: 2px 12px 6px; }
+.add-row input { width: 100%; background: var(--inp); border: 1px solid var(--ac); border-radius: 4px; color: var(--fg); font: 12px var(--mono); padding: 6px 8px; outline: none; }
+.add-row input.bad { border-color: var(--err); }
+
+.node { display: flex; align-items: center; gap: 6px; height: 28px; padding-right: 8px; cursor: pointer; font: 12.5px var(--mono); }
+.node:hover { background: var(--hov); }
+.node .icon { width: 12px; flex: none; color: var(--mu2); font-size: 10px; }
+.node .nm { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.node.dir { color: var(--mu); }
+.node.on { background: var(--sel); color: var(--ac2); }
+.node .act { background: none; border: 0; color: var(--mu2); cursor: pointer; font: 13px var(--mono); padding: 0 4px; }
+.node .act:hover { color: var(--ac2); }
+.node .act.del:hover { color: var(--err); }
+
+.side-foot { position: relative; flex: none; border-top: 1px solid var(--bd); }
+.user { width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: none; border: 0; text-align: left; cursor: pointer; }
+.user:hover { background: var(--hov); }
+.avatar { width: 30px; height: 30px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--acbg); color: var(--ac2); font: 600 12px var(--sans); }
+.who { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.3; }
+.who .name { font-weight: 500; }
+.who .sub { font-size: 11px; color: var(--mu2); }
+.caret { color: var(--mu2); font-size: 10px; }
+
+.popover { position: absolute; left: 8px; right: 8px; bottom: 56px; padding: 4px; background: var(--hov); border: 1px solid var(--bd2); border-radius: 6px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); z-index: 10; }
+.setting { display: flex; align-items: center; gap: 10px; padding: 8px 10px; color: var(--mu); }
+.setting:not(:last-of-type) { padding-bottom: 6px; }
+.seg { display: flex; border: 1px solid var(--bd2); border-radius: 5px; overflow: hidden; }
+.seg button { border: 0; cursor: pointer; padding: 4px 10px; font: 12px var(--sans); background: transparent; color: var(--mu); }
+.seg button.on { background: var(--acbg); color: var(--ac2); }
+.accents { display: flex; gap: 8px; }
+.accents button { width: 20px; height: 20px; padding: 0; border-radius: 50%; cursor: pointer; border: 2px solid var(--bg2); outline: 1px solid transparent; }
+.accents button.on { outline-color: var(--fg); }
+.stepper { display: flex; align-items: center; border: 1px solid var(--bd2); border-radius: 5px; }
+.stepper button { width: 28px; height: 26px; background: none; border: 0; color: var(--fg); cursor: pointer; font: 14px var(--mono); }
+.stepper button:hover { background: var(--hov); }
+.stepper span { min-width: 32px; text-align: center; font: 12px var(--mono); }
+.menu-item { display: block; width: 100%; padding: 7px 10px; margin-top: 4px; background: none; border: 0; border-top: 1px solid var(--bd); border-radius: 0 0 4px 4px; text-align: left; cursor: pointer; }
+.menu-item:hover { background: var(--bd); }
+
+/* ---- main: editor + bottom panel ---- */
+.main { flex: 1; min-width: 0; display: flex; flex-direction: row; }
+.editor { flex: 1; min-width: 0; min-height: 0; padding: 12px 0 0; overflow: hidden; }
+.editor textarea.fallback { width: 100%; height: 100%; padding: 0 16px; border: 0; background: transparent; color: var(--fg); font: 13px/22px var(--mono); resize: none; outline: 0; tab-size: 4; }
+
+/* diagnostics drawn inside the editor */
+.cc-warn-text { text-decoration: underline wavy var(--warn); }
+.cc-err-text { text-decoration: underline wavy var(--err); }
+/* never intercepts the mouse or text selection, so clicking at the end of a line still puts the caret there */
+.cc-diag-after { margin-left: 24px; font-size: 11px; font-family: var(--mono); pointer-events: none; user-select: none; }
+.cc-diag-after.warn { color: var(--warn); }
+.cc-diag-after.err { color: var(--err); }
+.cc-diag-after.note { color: var(--mu2); }
+
+/* Console and Diagnostics sit to the right of the editor; below it on narrow screens (see the media queries). */
+.panel { position: relative; width: 42%; min-width: 320px; max-width: 680px; flex: none; display: flex; flex-direction: column; border-left: 1px solid var(--bd); }
+.ptabs { display: flex; align-items: stretch; gap: 4px; padding: 0 8px; height: 36px; border-bottom: 1px solid var(--bd); flex: none; }
+.ptab { background: none; border: 0; border-bottom: 2px solid transparent; color: var(--mu2); padding: 0 12px; font: 500 13px var(--sans); cursor: pointer; }
+.ptab.on { color: var(--fg); border-bottom-color: var(--ac); }
+.linkbtn { align-self: center; background: none; border: 0; color: var(--mu2); font: 12px var(--sans); cursor: pointer; }
+.linkbtn:hover { color: var(--ac2); }
+.linkbtn.aa { margin-right: 4px; font: 600 12px var(--mono); }
+.console-menu { top: 40px; right: 8px; bottom: auto; left: auto; width: 250px; }
+.setting.wrap { flex-wrap: wrap; row-gap: 6px; }
+.swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+.swatches button { width: 20px; height: 20px; padding: 0; border-radius: 50%; cursor: pointer; border: 2px solid var(--hov); outline: 1px solid transparent; }
+.swatches button.on { outline-color: var(--fg); }
+.console-menu input[type=color] { width: 34px; height: 24px; padding: 0; border: 1px solid var(--bd2); border-radius: 4px; background: none; cursor: pointer; }
+.mini { background: none; border: 1px solid var(--bd2); border-radius: 4px; color: var(--mu); padding: 3px 8px; font: 12px var(--sans); cursor: pointer; }
+.mini:hover { color: var(--ac2); border-color: var(--ac); }
+
+.pane { flex: 1; min-height: 0; overflow: auto; padding: 6px 0; }
+
+/* Collapsed: a slim rail with the toggle and the tab names (vertical), not a fully hidden panel. */
+.panel { transition: width 0.15s ease; }
+.panel.collapsed { width: 44px; min-width: 44px; max-width: 44px; }
+.panel.collapsed .pane, .panel.collapsed .linkbtn, .panel.collapsed .ptabs .grow, .panel.collapsed .console-menu { display: none !important; }
+.panel.collapsed .ptabs { flex: 1; flex-direction: column; align-items: center; height: auto; gap: 6px; padding: 8px 0; border-bottom: 0; }
+.panel.collapsed .sidebtn.small { margin: 0 0 6px; }
+.panel.collapsed .ptab { writing-mode: vertical-rl; padding: 10px 4px; border-bottom: 0; border-right: 2px solid transparent; white-space: nowrap; }
+.panel.collapsed .ptab.on { border-right-color: var(--ac); }
+.drow { display: flex; gap: 12px; padding: 6px 16px; cursor: pointer; align-items: baseline; }
+.drow:hover { background: var(--hov); }
+.drow .kind { width: 56px; flex: none; font: 11px var(--mono); }
+.drow .msg { flex: 1; }
+.drow .msg .tip { display: block; margin-top: 3px; color: var(--ac); font-size: 12px; }
+.drow .loc { font: 12px var(--mono); color: var(--mu2); }
+.k-warning { color: var(--warn); } .k-error { color: var(--err); } .k-note { color: var(--mu2); }
+.empty { padding: 10px 16px; color: var(--mu2); }
+
+/* size and text color are user settings (the Aa button); see applyConsoleStyle() in app.js */
+.pane.console { display: flex; flex-direction: column; padding: 0; overflow: hidden; font: var(--console-fs, 13px)/var(--console-lh, 21px) var(--mono); }
+.log { flex: 1; overflow: auto; padding: 8px 16px; }
+.row { white-space: pre-wrap; overflow-wrap: anywhere; min-height: 20px; }
+.row.muted { color: var(--mu); } .row.dim { color: var(--mu2); } .row.out { color: var(--console-out, var(--fg)); }
+/* ASCII art rows (the about card): never wrap, so the shapes stay intact */
+.row.ascii { white-space: pre; overflow-wrap: normal; }
+.row.art { color: var(--ac); }
+.row.in { color: var(--blue); } .row.tip { color: var(--ac); } .row.warn { color: var(--warn); } .row.err { color: var(--err); } .row.ok { color: var(--ac); }
+.stdin-row { display: flex; align-items: center; gap: 8px; flex: none; height: 36px; padding: 0 16px; border-top: 1px solid var(--bd); }
+.prompt { color: var(--ac); }
+.stdin-row input { flex: 1; min-width: 0; background: none; border: 0; outline: none; color: var(--console-out, var(--fg)); font: var(--console-fs, 13px) var(--mono); }
+.stdin-row input::placeholder { color: var(--mu2); }
+
+/* bottom bar: build counter and streak (Friendly mode) */
+.statusbar { flex: none; display: flex; align-items: center; gap: 16px; height: 24px; padding: 0 16px; border-top: 1px solid var(--bd); background: var(--bg2); color: var(--mu); font: 11.5px var(--mono); white-space: nowrap; overflow: hidden; }
+
+#stats { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.credit { flex: none; }
+.credit a, .log a { color: var(--ac); text-decoration: none; }
+.credit a:hover, .log a:hover { color: var(--ac2); text-decoration: underline; }
+
+* { scrollbar-width: thin; scrollbar-color: var(--bd2) transparent; }
+
+/* ---- narrow screens: sidebar becomes an overlay, panel shrinks ---- */
+@media (max-width: 960px) {
+  .main { flex-direction: column; }
+  .panel { width: auto; min-width: 0; max-width: none; height: 240px; border-left: 0; border-top: 1px solid var(--bd); transition: none; }
+  /* stacked layout: the collapsed rail becomes a one-row bar under the editor */
+  .panel.collapsed { width: auto; min-width: 0; max-width: none; height: 37px; flex: none; }
+  .panel.collapsed .ptabs { flex-direction: row; height: 36px; padding: 0 8px; gap: 4px; }
+  .panel.collapsed .sidebtn.small { margin: 0 6px 0 2px; }
+  .panel.collapsed .ptab { writing-mode: horizontal-tb; padding: 0 12px; border-right: 0; border-bottom: 2px solid transparent; }
+  .panel.collapsed .ptab.on { border-bottom-color: var(--ac); }
+}
+/* Desktop: the sidebar has its own toggle (and a rail), so the top-bar one is only needed on phones,
+   where a collapsed sidebar is fully hidden. */
+@media (min-width: 761px) { #toggle-side { display: none; } }
+
+@media (max-width: 760px) {
+  .sidebar { position: absolute; z-index: 20; top: 52px; bottom: 0; left: 0; box-shadow: 8px 0 24px rgba(0, 0, 0, 0.35); transition: none; }
+  /* on phones the sidebar is an overlay, so "collapsed" means hidden (the top-bar button brings it back) */
+  .sidebar.collapsed { display: none; }
+  .body { position: relative; }
+  .crumb { display: none; }
+  .credit .long { display: none; }
+  .panel { height: 220px; }
+}
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2s; } .panel, .sidebar { transition: none; } }

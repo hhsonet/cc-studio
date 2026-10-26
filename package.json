@@ -1,0 +1,20 @@
+{
+  "name": "compiler-web",
+  "version": "1.0.0",
+  "description": "Browser-based C/C++ console that compiles and runs code in sandboxed Docker containers",
+  "main": "server.js",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "helmet": "^8.0.0",
+    "ws": "^8.22.0"
+  }
+}

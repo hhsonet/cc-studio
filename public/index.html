@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>cc-studio</title>
+  <link rel="stylesheet" href="fonts.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <button id="toggle-side" class="sidebtn js-toggle-side" type="button" title="Toggle sidebar" aria-label="Toggle sidebar" aria-expanded="true">
+        <span class="sideicon"><span></span></span>
+      </button>
+      <div class="brand"><span class="logo">cc</span>cc-studio</div>
+      <span id="filename" class="crumb"></span>
+      <span id="lang" class="chip"></span>
+      <div class="grow"></div>
+      <button id="format" class="ghost" type="button" title="Format the open file (Shift+Alt+F)">Format</button>
+      <button id="run" class="primary" type="button" title="Compile and run (Ctrl+Enter)">
+        <span class="spinner" hidden></span>
+        <span class="label">Compile ⏎</span>
+      </button>
+    </header>
+
+    <div class="body">
+      <aside id="sidebar" class="sidebar" aria-label="Project files">
+        <div class="side-head">
+          <button id="collapse-side" class="sidebtn small js-toggle-side" type="button" title="Collapse sidebar" aria-label="Collapse sidebar" aria-expanded="true">
+            <span class="sideicon"><span></span></span>
+          </button>
+          <span class="grow">Files</span>
+          <button id="new-file" class="tiny" type="button" title="New file" aria-label="New file">+</button>
+          <button id="upload" class="tiny" type="button" title="Upload .c, .cpp, .h or .txt" aria-label="Upload files">↑</button>
+          <input id="upload-input" type="file" accept=".c,.cpp,.cc,.cxx,.h,.hpp,.txt" multiple hidden>
+        </div>
+        <div class="tree-wrap">
+          <div id="add-row" class="add-row" hidden>
+            <input id="new-name" type="text" placeholder="src/name.c  ⏎" spellcheck="false" autocomplete="off" aria-label="New file name">
+          </div>
+          <div id="tree" role="tree"></div>
+        </div>
+
+        <div class="side-foot">
+          <div id="settings-menu" class="popover" hidden>
+            <div class="setting">
+              <span class="grow">Theme</span>
+              <div id="mode-seg" class="seg"></div>
+            </div>
+            <div class="setting">
+              <span class="grow">Accent</span>
+              <div id="accents" class="accents"></div>
+            </div>
+            <div class="setting">
+              <span class="grow">Editor font</span>
+              <div class="stepper">
+                <button id="fs-down" type="button" aria-label="Smaller font">−</button>
+                <span id="fs-val"></span>
+                <button id="fs-up" type="button" aria-label="Larger font">+</button>
+              </div>
+            </div>
+            <div class="setting">
+              <span class="grow" title="clang-format style used by the Format button">Format style</span>
+              <select id="format-style" aria-label="Format style">
+                <option>LLVM</option><option>Google</option><option>GNU</option><option>Chromium</option>
+                <option>Mozilla</option><option>WebKit</option><option>Microsoft</option>
+              </select>
+            </div>
+            <div class="setting">
+              <span class="grow" title="Indent new lines automatically (Enter after { indents, } steps back)">Auto indent</span>
+              <div id="autoindent-seg" class="seg"></div>
+            </div>
+            <div class="setting">
+              <span class="grow" title="Spaces per indent level (Tab key and auto indent)">Indent size</span>
+              <div id="indentsize-seg" class="seg"></div>
+            </div>
+            <div class="setting">
+              <span class="grow" title="Plain-English hints under errors and crashes, console quips and a few easter eggs">Friendly mode</span>
+              <div id="friendly-seg" class="seg"></div>
+            </div>
+            <button id="show-keys" class="menu-item" type="button">Keyboard shortcuts</button>
+          </div>
+          <button id="settings-btn" class="user" type="button" aria-haspopup="true" aria-expanded="false">
+            <span class="avatar">cc</span>
+            <span class="who"><span class="name">cc-studio</span><span class="sub">Settings</span></span>
+            <span class="caret">⌃</span>
+          </button>
+        </div>
+      </aside>
+
+      <main class="main">
+        <div id="editor" class="editor" aria-label="Code editor"></div>
+
+        <section id="panel" class="panel">
+          <div class="ptabs" role="tablist">
+            <button id="collapse-panel" class="sidebtn small js-toggle-panel" type="button" title="Collapse panel" aria-label="Collapse panel" aria-expanded="true">
+              <span class="sideicon right"><span></span></span>
+            </button>
+            <button id="tab-diag" class="ptab" type="button" role="tab" data-tab="diag">Diagnostics (0)</button>
+            <button id="tab-console" class="ptab" type="button" role="tab" data-tab="console">Console</button>
+            <div class="grow"></div>
+            <button id="console-settings-btn" class="linkbtn aa" type="button" title="Console font size and color" aria-label="Console font size and color" aria-haspopup="true" aria-expanded="false">Aa</button>
+            <button id="clear" class="linkbtn" type="button">Clear</button>
+          </div>
+
+          <div id="console-menu" class="popover console-menu" hidden>
+            <div class="setting">
+              <span class="grow">Font size</span>
+              <div class="stepper">
+                <button id="cfs-down" type="button" aria-label="Smaller console font">−</button>
+                <span id="cfs-val"></span>
+                <button id="cfs-up" type="button" aria-label="Larger console font">+</button>
+              </div>
+            </div>
+            <div class="setting wrap">
+              <span class="grow">Text color</span>
+              <div id="console-colors" class="swatches"></div>
+            </div>
+            <div class="setting">
+              <span class="grow">Custom</span>
+              <input id="console-color-custom" type="color" aria-label="Custom console text color">
+              <button id="console-color-reset" class="mini" type="button">Reset</button>
+            </div>
+          </div>
+
+          <div id="pane-diag" class="pane" hidden>
+            <div id="diag-list"></div>
+          </div>
+
+          <div id="pane-console" class="pane console">
+            <div id="log" class="log" aria-live="polite"></div>
+            <label class="stdin-row">
+              <span class="prompt">stdin ›</span>
+              <input id="stdin" type="text" placeholder="type input, press Enter" spellcheck="false" autocomplete="off" autocapitalize="off">
+            </label>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <footer id="statusbar" class="statusbar">
+      <span id="stats" aria-label="Build statistics"></span>
+      <span class="grow"></span>
+      <span id="credit" class="credit"></span>
+    </footer>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"></script>
+  <script src="friendly.js"></script>
+  <script src="format-config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

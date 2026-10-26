@@ -1,0 +1,9 @@
+# dependencies and runtime files
+node_modules/
+logs/
+*.log
+
+# local configuration and secrets
+.env
+.env.*
+!.env.example
