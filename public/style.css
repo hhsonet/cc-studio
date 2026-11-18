@@ -56,7 +56,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ac); outlin
 /* ---- body: sidebar + main ---- */
 .body { flex: 1; display: flex; min-height: 0; }
 
-.sidebar { width: 240px; flex: none; display: flex; flex-direction: column; border-right: 1px solid var(--bd); background: var(--bg2); transition: width 0.15s ease; }
+.sidebar { width: var(--side-w, 240px); flex: none; display: flex; flex-direction: column; border-right: 1px solid var(--bd); background: var(--bg2); transition: width 0.15s ease; }
 /* Collapsed: a slim rail with the toggle, New file, Upload and Settings; file names are hidden. */
 .sidebar.collapsed { width: 48px; }
 .sidebar.collapsed .tree-wrap, .sidebar.collapsed .side-head .grow, .sidebar.collapsed .who, .sidebar.collapsed .caret { display: none; }
@@ -122,7 +122,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ac); outlin
 .cc-diag-after.note { color: var(--mu2); }
 
 /* Console and Diagnostics sit to the right of the editor; below it on narrow screens (see the media queries). */
-.panel { position: relative; width: 42%; min-width: 320px; max-width: 680px; flex: none; display: flex; flex-direction: column; border-left: 1px solid var(--bd); }
+.panel { position: relative; width: var(--panel-w, 42%); min-width: 280px; max-width: var(--panel-max, 680px); flex: none; display: flex; flex-direction: column; border-left: 1px solid var(--bd); }
 .ptabs { display: flex; align-items: stretch; gap: 4px; padding: 0 8px; height: 36px; border-bottom: 1px solid var(--bd); flex: none; }
 .ptab { background: none; border: 0; border-bottom: 2px solid transparent; color: var(--mu2); padding: 0 12px; font: 500 13px var(--sans); cursor: pointer; }
 .ptab.on { color: var(--fg); border-bottom-color: var(--ac); }
@@ -244,7 +244,39 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ac); outlin
 .auth-dialog select { display: block; width: 100%; margin-top: 5px; padding: 8px 10px; background: var(--inp); color: var(--fg); border: 1px solid var(--bd2); border-radius: 5px; font: 13px var(--sans); }
 .auth-ok { margin: 0 0 10px; color: var(--ac2); font: 500 12px var(--sans); }
 .auth-ok a { color: inherit; }
-.gh-tabs { width: 100%; margin: 4px 0 14px; }
-.gh-tabs button { flex: 1; padding: 6px 10px; }
 .muted-inline { color: var(--mu2); font-weight: 400; }
 .gh-link { display: inline-block; text-decoration: none; padding: 6px 14px; border-radius: 5px; font: 600 13px var(--sans); background: var(--ac); color: var(--onac); }
+.icon-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; }
+.icon-btn svg { flex: none; }
+.icon-btn:disabled { opacity: 0.6; cursor: progress; }
+@media (max-width: 760px) { .icon-btn .label { display: none; } .icon-btn { padding: 6px 9px; } }
+
+/* Git tab */
+.git { padding: 0; }
+.git-head { display: flex; align-items: center; gap: 12px; padding: 8px 16px; border-bottom: 1px solid var(--bd); }
+.git-repo { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 12px var(--mono); }
+.git-repo a { color: var(--ac2); text-decoration: none; }
+.git-msg { margin: 0; padding: 14px 16px; color: var(--mu); font: 13px/1.5 var(--sans); }
+.git-msg a { color: var(--ac2); }
+.git-list { list-style: none; margin: 0; padding: 0; }
+.commit { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; padding: 9px 16px; border-bottom: 1px solid var(--bd); }
+.commit-msg { flex: 1 1 100%; min-width: 0; overflow-wrap: anywhere; color: var(--fg); text-decoration: none; font: 500 13px var(--sans); }
+a.commit-msg:hover { color: var(--ac2); }
+.commit-meta { color: var(--mu2); font: 11px var(--mono); }
+.commit-latest { font-size: 10px; padding: 1px 6px; }
+
+/* Continue with GitHub */
+.auth-gh { margin-top: 14px; }
+.auth-or { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; color: var(--mu2); font: 12px var(--sans); }
+.auth-or::before, .auth-or::after { content: ''; flex: 1; border-top: 1px solid var(--bd2); }
+.auth-gh-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 8px 14px; }
+
+/* ---- Resizable columns: dividers between Files, the editor and the console panel ---- */
+.resizer { position: relative; flex: none; width: 0; z-index: 6; cursor: col-resize; touch-action: none; outline: none; }
+.resizer::before { content: ''; position: absolute; top: 0; bottom: 0; left: -5px; width: 11px; } /* a wider hit area than the 1px line */
+.resizer::after { content: ''; position: absolute; top: 0; bottom: 0; left: -1px; width: 3px; background: transparent; transition: background 0.12s ease; }
+.resizer:hover::after, .resizer:focus-visible::after, body.resizing .resizer.active::after { background: var(--ac); }
+body.resizing { cursor: col-resize; user-select: none; }
+body.resizing .sidebar, body.resizing .panel { transition: none; }
+@media (max-width: 960px) { .resizer-panel { display: none; } } /* the panel sits under the editor here */
+@media (max-width: 760px) { #resize-side { display: none; } }   /* the sidebar is an overlay here */

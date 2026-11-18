@@ -161,6 +161,7 @@ function loadState() {
   const settings = {
     mode: 'dark', acc: 'teal', fs: 13, sideOpen: window.innerWidth > 760, panelOpen: true, friendly: true,
     console: { fs: 13, color: '' }, indent: { auto: true, size: 4 }, formatStyle: 'LLVM',
+    sideW: 0, panelW: 0, // column widths in px set by dragging; 0 means the default
   };
   let saved = null; // { files, open, collapsed }
   try {
@@ -176,6 +177,8 @@ function loadState() {
         console: cleanConsoleSettings(s.console),
         indent: cleanIndentSettings(s.indent),
         formatStyle: FORMAT_STYLES.includes(s.formatStyle) ? s.formatStyle : 'LLVM',
+        sideW: Number.isFinite(s.sideW) && s.sideW >= 120 && s.sideW <= 2000 ? Math.round(s.sideW) : 0,
+        panelW: Number.isFinite(s.panelW) && s.panelW >= 120 && s.panelW <= 2000 ? Math.round(s.panelW) : 0,
       });
       if (Array.isArray(s.projects)) {
         saved = mergeSavedProjects(s.projects, s.current);
@@ -195,6 +198,7 @@ function loadState() {
   };
 }
 
+let resizer = null; // the column resizer (public/resize.js), set up once the DOM below exists
 let saveTimer = null;
 let viewOnly = false; // a teacher looking at a student's files: nothing may be saved over their own
 function flushSave() {
@@ -607,6 +611,8 @@ function showPanel(name, reveal = true) {
   }
   $('pane-diag').hidden = name !== 'diag';
   $('pane-console').hidden = name !== 'console';
+  $('pane-git').hidden = name !== 'git';
+  if (name === 'git' && window.CCGithub) window.CCGithub.loadHistory();
   $('clear').hidden = name !== 'console';
   $('console-settings-btn').hidden = name !== 'console';
   if (name !== 'console') toggleConsoleMenu(false);
@@ -617,6 +623,8 @@ function setPanelOpen(open) {
   state.panelOpen = open;
   // Collapsing never removes the panel: it shrinks to a rail that still holds the toggle and tab names.
   $('panel').classList.toggle('collapsed', !open);
+  $('resize-panel').hidden = !open;
+  if (resizer) resizer.apply();
   for (const b of document.querySelectorAll('.js-toggle-panel')) {
     b.setAttribute('aria-expanded', String(open));
     b.title = open ? 'Collapse panel' : 'Expand panel';
@@ -925,6 +933,8 @@ document.addEventListener('keydown', (e) => {
 // the one in the top bar and the one at the top of the sidebar.
 function applySidebar() {
   $('sidebar').classList.toggle('collapsed', !state.sideOpen);
+  $('resize-side').hidden = !state.sideOpen; // a collapsed rail has a fixed width
+  if (resizer) resizer.apply();
   for (const b of document.querySelectorAll('.js-toggle-side')) {
     b.setAttribute('aria-expanded', String(state.sideOpen));
     b.title = state.sideOpen ? 'Collapse sidebar' : 'Expand sidebar';
@@ -934,6 +944,20 @@ function applySidebar() {
 }
 function setSidebarOpen(open) { state.sideOpen = open; applySidebar(); save(); }
 for (const b of document.querySelectorAll('.js-toggle-side')) b.addEventListener('click', () => setSidebarOpen(!state.sideOpen));
+
+// ---- Resizable columns: drag the dividers between Files, the editor and the console panel (public/resize.js) ----
+// Widths are kept in state.sideW / state.panelW (px, 0 = default). The editor keeps a minimum width, and
+// Monaco (automaticLayout) redraws itself as its box changes.
+resizer = window.CCResize.create({
+  state,
+  save,
+  body: document.querySelector('.body'),
+  sidebar: $('sidebar'),
+  panel: $('panel'),
+  sideHandle: $('resize-side'),
+  panelHandle: $('resize-panel'),
+  stacked: () => window.matchMedia('(max-width: 960px)').matches, // the panel sits under the editor, not beside it
+});
 
 function renderSettings() {
   const seg = $('mode-seg');
@@ -1364,6 +1388,10 @@ applyDiagnostics();
 if (window.CCGithub) {
   window.CCGithub.init({
     getWorkspace: () => ({ files: state.files }),
+    /** A line in the Console, as a record of what GitHub did. */
+    log: (text) => logLine(text, 'dim'),
+    isGitTabOpen: () => panel === 'git',
+    leaveGitTab: () => showPanel('console', false),
     /** Pull: write a repository's files into <folder>/ (overwriting same-named files, keeping the rest). */
     applyFolder(folder, files) {
       for (const [path, text] of Object.entries(files)) state.files[`${folder}/${path}`] = text;

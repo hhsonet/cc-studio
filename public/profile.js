@@ -3,21 +3,6 @@
 (function () {
   const $ = (id) => document.getElementById(id);
 
-  // ---- Theme: follow the editor's saved theme and accent (same localStorage key as app.js) ----
-  const ACCENTS = { teal: ['#7fc4b0', '#1f7a68'], blue: ['#7fb0e8', '#2a62b8'], amber: ['#e0b060', '#a86a10'], violet: ['#b79be0', '#6a45b8'] };
-  const PALETTE = {
-    dark: { bg: '#111314', bg2: '#141617', bd: '#26292a', bd2: '#2f3334', fg: '#d6d9d8', mu: '#9aa19f', mu2: '#7d8584', hov: '#1c1f20', inp: '#0d0f10', err: '#e07a72', onac: '#0d1211' },
-    light: { bg: '#f6f7f7', bg2: '#eceeee', bd: '#dcdfdf', bd2: '#cfd3d3', fg: '#1b1f1f', mu: '#4f5856', mu2: '#626b69', hov: '#e3e6e6', inp: '#ffffff', err: '#c0392b', onac: '#ffffff' },
-  };
-  try {
-    const s = JSON.parse(localStorage.getItem('cc-studio:v1')) || {};
-    const mode = s.mode === 'light' ? 'light' : 'dark';
-    const ac = (ACCENTS[s.acc] || ACCENTS.teal)[mode === 'dark' ? 0 : 1];
-    const vars = { ...PALETTE[mode], ac, ac2: ac, acbg: ac + (mode === 'dark' ? '33' : '22') };
-    for (const [k, v] of Object.entries(vars)) document.documentElement.style.setProperty(`--${k}`, v);
-    document.documentElement.style.colorScheme = mode;
-  } catch { /* no saved theme: keep the dark default */ }
-
   // ---- API ----
   async function call(method, path, body) {
     const res = await fetch(`/api${path}`, {
@@ -56,50 +41,8 @@
     const count = workspace ? Object.keys(workspace.files || {}).length : 0;
     $('f-files').textContent = workspace ? `${count} file${count === 1 ? '' : 's'}` : 'Nothing saved yet';
     $('f-saved').textContent = fmtDateTime(updatedAt);
+    $('pw-card').hidden = user.hasPassword === false; // signed in with GitHub: there is no password to change
     document.title = `${label} · cc-studio`;
-  }
-
-  async function loadUsers() {
-    const r = await call('GET', '/admin/users');
-    if (!r.ok) { message($('admin-msg'), (r.json && r.json.error) || 'Could not load users.', 'err'); return; }
-    const body = $('users');
-    body.replaceChildren();
-    for (const u of r.json.users) {
-      const tr = document.createElement('tr');
-      const cell = (text, cls) => { const td = document.createElement('td'); td.textContent = text; if (cls) td.className = cls; tr.appendChild(td); return td; };
-      cell(u.username || u.email, 'user');
-      const roleCell = cell(u.role === 'superadmin' ? ROLES.superadmin : '');
-      if (u.role !== 'superadmin') {
-        const sel = document.createElement('select');
-        sel.setAttribute('aria-label', `Role of ${u.username || u.email}`);
-        for (const key of ['student', 'teacher']) sel.append(new Option(ROLES[key], key, false, u.role === key));
-        sel.addEventListener('change', async () => {
-          const d = await call('PUT', `/admin/users/${u.id}/role`, { role: sel.value });
-          if (d.ok) message($('admin-msg'), `${u.username || u.email} is now a ${ROLES[sel.value].toLowerCase()}.`, 'ok');
-          else { message($('admin-msg'), (d.json && d.json.error) || 'Could not change the role.', 'err'); sel.value = u.role; }
-          if (d.ok) u.role = sel.value;
-        });
-        roleCell.append(sel);
-      }
-      cell(fmtDate(u.createdAt));
-      cell(fmtDateTime(u.workspaceUpdatedAt));
-      const act = document.createElement('td');
-      if (String(u.id) !== String(me.id)) {
-        const del = document.createElement('button');
-        del.type = 'button';
-        del.className = 'btn danger';
-        del.textContent = 'Delete';
-        del.addEventListener('click', async () => {
-          if (!window.confirm(`Delete ${u.username || u.email} and all their saved files? This cannot be undone.`)) return;
-          del.disabled = true;
-          const d = await call('DELETE', `/admin/users/${u.id}`);
-          if (d.ok) { message($('admin-msg'), ''); loadUsers(); } else { message($('admin-msg'), (d.json && d.json.error) || 'Could not delete.', 'err'); del.disabled = false; }
-        });
-        act.appendChild(del);
-      }
-      tr.appendChild(act);
-      body.appendChild(tr);
-    }
   }
 
   $('pw-form').addEventListener('submit', async (e) => {
@@ -150,6 +93,15 @@
     $('gh-unlink').hidden = !s.repo;
   }
 
+  const AUTH_MESSAGES = {
+    github_denied: 'You declined the request on GitHub.',
+    github_state: 'The GitHub connection could not be verified (it may have expired). Please try again.',
+    github_failed: 'Connecting GitHub failed. Please try again.',
+    login_first: 'Log in first, then connect GitHub.',
+    github_taken: 'That GitHub account already belongs to another cc-studio account.',
+    github_other: 'This cc-studio account is already tied to a different GitHub account.',
+  };
+
   async function loadGithub() {
     const r = await gcall('GET', '/status');
     ghStatus = r.ok ? r.json : null;
@@ -160,6 +112,11 @@
       list.replaceChildren();
       if (repos.ok) for (const x of repos.json.repos) list.append(new Option(x.description || '', x.name));
     }
+    const problem = AUTH_MESSAGES[new URLSearchParams(window.location.search).get('auth')];
+    if (problem) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.hash);
+      message($('gh-msg'), problem, 'err');
+    }
     if (window.location.hash === '#github' && !$('github').hidden) $('github').scrollIntoView();
   }
 
@@ -168,6 +125,7 @@
     ghPoll = setTimeout(async () => {
       let r;
       try { r = await gcall('POST', '/device/poll', {}); } catch { pollGithub(seconds); return; }
+      if (!r.ok) { $('gh-code-box').hidden = true; message($('gh-msg'), (r.json && r.json.error) || 'Could not connect GitHub.', 'err'); return; }
       const st = r.json && r.json.status;
       if (st === 'connected') { $('gh-code-box').hidden = true; message($('gh-msg'), ''); await loadGithub(); return; }
       if (st === 'pending') { pollGithub(r.json.interval || seconds); return; }
@@ -177,6 +135,7 @@
   }
 
   $('gh-connect').addEventListener('click', async () => {
+    if (ghStatus && ghStatus.webFlow) { window.location.href = '/api/github/oauth/connect'; return; } // GitHub's Authorize page, then back here
     message($('gh-msg'), '');
     const btn = $('gh-connect');
     btn.disabled = true;
@@ -254,6 +213,5 @@
     showProfile(me, ws.ok ? ws.json.workspace : null, ws.ok ? ws.json.updatedAt : null);
     $('signed-in').hidden = false;
     loadGithub();
-    if (me.role === 'superadmin') { $('admin').hidden = false; await loadUsers(); }
   })();
 })();

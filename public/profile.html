@@ -7,14 +7,10 @@
   <title>Profile · cc-studio</title>
   <link rel="stylesheet" href="fonts.css">
   <link rel="stylesheet" href="profile.css">
+  <link rel="stylesheet" href="shell.css">
 </head>
-<body>
-  <header class="bar">
-    <a class="back" href="/">← Back to editor</a>
-    <div class="brand"><span class="logo">cc</span>cc-studio</div>
-  </header>
-
-  <main class="page">
+<body data-nav="profile">
+  <main id="page" class="page">
     <p id="loading" class="muted">Loading…</p>
 
     <section id="signed-out" class="card" hidden>
@@ -30,7 +26,6 @@
           <h1 id="name"></h1>
           <span id="role" class="chip" hidden></span>
         </div>
-        <a class="btn" href="/classes.html">Classes</a>
         <button id="logout" class="btn" type="button">Log out</button>
       </section>
 
@@ -45,7 +40,7 @@
         </dl>
       </section>
 
-      <section class="card">
+      <section id="pw-card" class="card">
         <h2>Change password</h2>
         <form id="pw-form" novalidate>
           <label>Current password
@@ -97,18 +92,10 @@
         </div>
       </section>
 
-      <section id="admin" class="card" hidden>
-        <h2>All users</h2>
-        <p id="admin-msg" class="msg" role="status" hidden></p>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>User</th><th>Role</th><th>Joined</th><th>Last saved</th><th></th></tr></thead>
-            <tbody id="users"></tbody>
-          </table>
-        </div>
-      </section>
     </div>
   </main>
+  <script src="theme.js"></script>
+  <script src="shell.js"></script>
   <script src="profile.js"></script>
 </body>
 </html>

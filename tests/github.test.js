@@ -37,7 +37,7 @@ test('cleanExport validates paths, size and the commit message', () => {
 
 /** A tiny in-memory stand-in for the parts of GitHub that cc-studio calls. */
 function fakeGithub() {
-  const gh = { repos: new Map(), calls: [], revoked: false, polls: 0, scope: 'public_repo' };
+  const gh = { repos: new Map(), calls: [], exchanges: [], revoked: false, polls: 0, scope: 'public_repo', user: { login: 'octo', id: 4242 } };
   const reply = (status, body) => ({ status, ok: status >= 200 && status < 300, json: async () => body });
   gh.fetch = async (url, options = {}) => {
     const u = new URL(url);
@@ -46,18 +46,22 @@ function fakeGithub() {
     if (u.host === 'github.com' && u.pathname === '/login/device/code') {
       return reply(200, { device_code: 'dc-secret', user_code: 'ABCD-1234', verification_uri: 'https://github.com/login/device', expires_in: 900, interval: 5 });
     }
+    if (u.host === 'github.com' && u.pathname === '/login/oauth/access_token' && body.code !== undefined) {
+      gh.exchanges.push(body);
+      return reply(200, body.code === 'good-code' && body.client_secret === 'the-secret' ? { access_token: 'gho_web', token_type: 'bearer', scope: gh.webScope || '' } : { error: 'bad_verification_code' });
+    }
     if (u.host === 'github.com' && u.pathname === '/login/oauth/access_token') {
       return reply(200, ++gh.polls < 2 ? { error: 'authorization_pending' } : { access_token: 'gho_secret', token_type: 'bearer', scope: gh.scope });
     }
     if (gh.revoked) return reply(401, { message: 'Bad credentials' });
     const m = /^\/repos\/octo\/([^/]+)(.*)$/.exec(u.pathname);
-    if (u.pathname === '/user') return reply(200, { login: 'octo' });
+    if (u.pathname === '/user') return reply(200, gh.user);
     if (u.pathname === '/user/repos' && (options.method || 'GET') === 'GET') {
       return reply(200, [...gh.repos.entries()].map(([n, r]) => ({ name: n, private: r.private, default_branch: 'main', description: null })));
     }
     if (u.pathname === '/user/repos' && gh.cannotCreate) return reply(403, { message: 'Resource not accessible by integration' });
     if (u.pathname === '/user/repos') {
-      gh.repos.set(body.name, { default_branch: 'main', files: {}, treeSha: 't0', commits: ['c0'], private: body.private, autoInit: body.auto_init });
+      gh.repos.set(body.name, { default_branch: 'main', files: {}, treeSha: 't0', commits: ['c0'], log: [{ sha: 'c0', message: 'Initial commit' }], private: body.private, autoInit: body.auto_init });
       return reply(201, { default_branch: 'main', html_url: `https://github.com/octo/${body.name}` });
     }
     if (!m) return reply(404, { message: 'Not Found' });
@@ -65,6 +69,13 @@ function fakeGithub() {
     if (!repo) return reply(404, { message: 'Not Found' });
     const rest = m[2];
     if (rest === '') return reply(200, { default_branch: 'main', html_url: `https://github.com/octo/${m[1]}` });
+    if (rest === '/commits' && u.search === '?per_page=20') {
+      if (repo.log.length === 0) return reply(409, { message: 'Git Repository is empty.' });
+      return reply(200, [...repo.log].reverse().map((c) => ({
+        sha: `${c.sha}0000000000`, html_url: `https://github.com/octo/x/commit/${c.sha}`,
+        commit: { message: `${c.message}\n\nlong body`, author: { name: 'Octo Cat', date: '2026-11-18T10:00:00Z' } }, author: { login: 'octo' },
+      })));
+    }
     if (rest === '/git/ref/heads/main') return reply(200, { object: { sha: repo.commits[repo.commits.length - 1] } });
     if (/^\/git\/commits\/c\d+$/.test(rest) && (options.method || 'GET') === 'GET') return reply(200, { tree: { sha: repo.treeSha } });
     if (rest === '/git/trees/main' && u.search === '?recursive=1') {
@@ -88,11 +99,13 @@ function fakeGithub() {
     if (rest === '/git/commits') {
       repo.pendingCommit = `c${repo.commits.length}`;
       repo.lastMessage = body.message;
+      repo.pendingMessage = body.message;
       repo.lastParents = body.parents;
       return reply(201, { sha: repo.pendingCommit, html_url: `https://github.com/octo/${m[1]}/commit/${repo.pendingCommit}` });
     }
     if (rest === '/git/refs/heads/main') {
       repo.commits.push(body.sha);
+      repo.log.push({ sha: body.sha, message: repo.pendingMessage });
       repo.files = repo.pending.merged;
       repo.treeSha = repo.pending.sha;
       return reply(200, {});
@@ -120,7 +133,8 @@ test('GitHub connect and export', { skip: !DB_URL && 'DATABASE_URL not set' }, a
   };
   const on = await listen({ clientId: 'client-id', scope: 'public_repo', tokenKey, fetchImpl: gh.fetch });
   const off = await listen({});
-  t.after(async () => { on.server.close(); off.server.close(); await db.close(); await admin.query(`DROP DATABASE ${name}`); await admin.end(); });
+  const web = await listen({ clientId: 'client-id', clientSecret: 'the-secret', publicUrl: 'https://cc.example/', scope: 'public_repo', tokenKey, fetchImpl: gh.fetch });
+  t.after(async () => { on.server.close(); off.server.close(); web.server.close(); await db.close(); await admin.query(`DROP DATABASE ${name}`); await admin.end(); });
 
   const call = async (base, method, path, body, cookie) => {
     const res = await fetch(base + path, { method, headers: { 'content-type': 'application/json', ...(cookie && { cookie }) }, body: body === undefined ? undefined : JSON.stringify(body) });
@@ -140,7 +154,7 @@ test('GitHub connect and export', { skip: !DB_URL && 'DATABASE_URL not set' }, a
   });
 
   await t.test('push and pull before connecting ask to connect', async () => {
-    assert.deepEqual((await api('GET', '/status')).json, { enabled: true, connected: false, login: null, repo: null, canBePrivate: false });
+    assert.deepEqual((await api('GET', '/status')).json, { enabled: true, webFlow: false, connected: false, login: null, repo: null, canBePrivate: false });
     for (const [path, body] of [['/export', { files }], ['/import', {}], ['/repo', null]]) {
       const r = body === null ? await api('PUT', path, { repo: 'proj' }) : await api('POST', path, body);
       assert.equal(r.status, 409, path);
@@ -225,6 +239,24 @@ test('GitHub connect and export', { skip: !DB_URL && 'DATABASE_URL not set' }, a
     assert.equal(gh.repos.get('proj').files['NOTES.md'], '# Notes'); // markdown is a supported type
   });
 
+  await t.test('history: the linked repository\'s latest commits', async () => {
+    const r = await api('GET', '/commits');
+    assert.equal(r.status, 200);
+    assert.equal(r.json.repo, 'octo/proj');
+    assert.equal(r.json.commits.length, 3);
+    assert.deepEqual(r.json.commits.map((c) => c.message), ['Fix', 'First version', 'Initial commit']); // newest first, first line only
+    assert.equal(r.json.commits[0].author, 'octo');
+    assert.equal(r.json.commits[0].sha.length, 7);
+    assert.ok(r.json.commits[0].url.startsWith('https://github.com/'));
+    gh.repos.get('proj').log = []; // an empty repository
+    assert.deepEqual((await api('GET', '/commits')).json.commits, []);
+    assert.equal((await api('GET', '/commits')).json.empty, true);
+    gh.repos.get('proj').log = [{ sha: 'c0', message: 'Initial commit' }, { sha: 'c1', message: 'First version' }, { sha: 'c2', message: 'Fix' }];
+    const other = await call(on.base, 'POST', '/api/signup', { email: 'hist@example.com', password: 'password-123' });
+    assert.equal((await call(on.base, 'GET', '/api/github/commits', undefined, other.cookie)).status, 409); // not connected
+    assert.equal((await call(on.base, 'GET', '/api/github/commits')).status, 401);
+  });
+
   await t.test('pull: list repositories and fetch the linked repository\'s source files', async () => {
     const list = await api('GET', '/repos');
     assert.equal(list.status, 200);
@@ -265,5 +297,148 @@ test('GitHub connect and export', { skip: !DB_URL && 'DATABASE_URL not set' }, a
     assert.equal((await api('DELETE', '')).status, 200);
     assert.equal((await api('GET', '/status')).json.connected, false);
     assert.equal((await db.query('SELECT count(*)::int AS n FROM github_links')).rows[0].n, 0);
+  });
+
+  // ---- Sign in with GitHub ----
+  const anon = (method, path, body) => call(on.base, method, `/api/github${path}`, body);
+  const githubSignIn = async (ghUser) => {
+    gh.user = ghUser;
+    gh.polls = 0;
+    const s = await anon('POST', '/login/start', {});
+    assert.equal(s.status, 200);
+    assert.equal((await anon('POST', '/login/poll', { loginId: s.json.loginId })).json.status, 'pending');
+    return { start: s.json, done: await anon('POST', '/login/poll', { loginId: s.json.loginId }) };
+  };
+
+  await t.test('sign in with GitHub: public status, and off when the server has no app', async () => {
+    assert.deepEqual((await anon('GET', '/login/status')).json, { enabled: true, webFlow: false });
+    assert.deepEqual((await call(off.base, 'GET', '/api/github/login/status')).json, { enabled: false, webFlow: false });
+    assert.equal((await call(off.base, 'POST', '/api/github/login/start', {})).status, 503);
+  });
+
+  await t.test('a new GitHub user gets a student account without a password', async () => {
+    const { start, done } = await githubSignIn({ login: 'newbie', id: 777 });
+    assert.ok(!JSON.stringify(start).includes('dc-secret')); // the device code stays on the server
+    assert.equal(done.json.status, 'connected');
+    assert.deepEqual([done.json.user.username, done.json.user.role, done.json.user.hasPassword, done.json.user.email], ['newbie', 'student', false, null]);
+    assert.match(done.cookie, /^cc_session=/);
+    const me = await call(on.base, 'GET', '/api/me', undefined, done.cookie);
+    assert.equal(me.json.user.username, 'newbie');
+    assert.equal((await call(on.base, 'POST', '/api/login', { email: 'newbie', password: 'github-only' })).status, 401); // the marker is not a password
+    const pw = await call(on.base, 'POST', '/api/password', { currentPassword: 'x', newPassword: 'new-password-1' }, done.cookie);
+    assert.equal(pw.status, 400);
+    assert.match(pw.json.error, /signs in with GitHub/);
+    // sign-in asks GitHub for no repository access, so nothing is linked for push and pull yet
+    assert.equal((await call(on.base, 'GET', '/api/github/status', undefined, done.cookie)).json.connected, false);
+  });
+
+  await t.test('signing in again reaches the same account', async () => {
+    const first = (await githubSignIn({ login: 'newbie', id: 777 })).done.json.user.id;
+    const again = (await githubSignIn({ login: 'newbie-renamed', id: 777 })).done.json.user; // the numeric id decides, not the name
+    assert.equal(again.id, first);
+    assert.equal(again.username, 'newbie');
+  });
+
+  await t.test('a taken username is never taken over: the new account gets a suffix', async () => {
+    await db.query("INSERT INTO users (username, password_hash, role) VALUES ('collide', 'x', 'teacher')");
+    const { done } = await githubSignIn({ login: 'Collide', id: 888 });
+    assert.equal(done.json.user.username, 'Collide-2');
+    assert.equal(done.json.user.role, 'student');
+    const real = (await db.query("SELECT github_id FROM users WHERE username = 'collide'")).rows[0];
+    assert.equal(real.github_id, null);
+  });
+
+  await t.test('connecting GitHub in the profile ties it to that account; the same account can then sign in', async () => {
+    // user g@ connected octo (4242) earlier and disconnected: the tie to the GitHub account stays
+    const { done } = await githubSignIn({ login: 'octo', id: 4242 });
+    assert.equal(done.json.user.email, 'g@example.com');
+    assert.equal(done.json.user.hasPassword, true);
+  });
+
+  await t.test('one GitHub account cannot be tied to two cc-studio accounts', async () => {
+    const other = await call(on.base, 'POST', '/api/signup', { email: 'dup@example.com', password: 'password-123' });
+    gh.user = { login: 'octo', id: 4242 }; // already belongs to g@
+    gh.polls = 1;
+    await call(on.base, 'POST', '/api/github/device/start', {}, other.cookie);
+    const r = await call(on.base, 'POST', '/api/github/device/poll', {}, other.cookie);
+    assert.equal(r.status, 409);
+    assert.match(r.json.error, /already belongs to another/);
+    assert.equal((await call(on.base, 'GET', '/api/github/status', undefined, other.cookie)).json.connected, false);
+  });
+
+  await t.test('sign-in needs a valid, unexpired login id', async () => {
+    assert.equal((await anon('POST', '/login/poll', { loginId: 'nope' })).json.status, 'expired');
+    assert.equal((await anon('POST', '/login/poll', {})).json.status, 'expired');
+  });
+
+  // ---- The normal "Authorize" page (web OAuth) ----
+  const hop = async (base, path, cookie) => {
+    const res = await fetch(base + path, { redirect: 'manual', headers: cookie ? { cookie } : {} });
+    return { status: res.status, location: res.headers.get('location'), cookie: (res.headers.get('set-cookie') || '').split(';')[0], raw: res.headers.get('set-cookie') || '' };
+  };
+
+  await t.test('web flow is announced only when a client secret is set', async () => {
+    assert.deepEqual((await call(web.base, 'GET', '/api/github/login/status')).json, { enabled: true, webFlow: true });
+    assert.equal((await hop(on.base, '/api/github/oauth/login')).status, 503); // no secret on this server
+  });
+
+  await t.test('sign in: redirect to GitHub with a state, then back signed in', async () => {
+    const go = await hop(web.base, '/api/github/oauth/login');
+    assert.equal(go.status, 302);
+    const to = new URL(go.location);
+    assert.equal(to.origin + to.pathname, 'https://github.com/login/oauth/authorize');
+    assert.equal(to.searchParams.get('client_id'), 'client-id');
+    assert.equal(to.searchParams.get('redirect_uri'), 'https://cc.example/api/github/oauth/callback'); // from PUBLIC_URL, not the Host header
+    assert.equal(to.searchParams.has('scope'), false); // sign-in asks only for the public profile
+    assert.match(go.raw, /HttpOnly/i);
+    const state = to.searchParams.get('state');
+    assert.ok(state.length >= 30);
+
+    gh.user = { login: 'webuser', id: 9001 };
+    const back = await hop(web.base, `/api/github/oauth/callback?code=good-code&state=${state}`, go.cookie);
+    assert.equal(back.status, 302);
+    assert.equal(back.location, '/');
+    assert.match(back.raw, /cc_session=/); // the session cookie (the state cookie is cleared in the same response)
+    assert.match(back.raw, /cc_gh_oauth=;/); // the state cookie is cleared once used
+    assert.equal(gh.exchanges.at(-1).redirect_uri, 'https://cc.example/api/github/oauth/callback');
+    assert.equal(gh.exchanges.at(-1).client_secret, 'the-secret'); // the secret goes to GitHub only, never to the browser
+    const made = (await db.query("SELECT username, role FROM users WHERE github_id = 9001")).rows[0];
+    assert.deepEqual([made.username, made.role], ['webuser', 'student']);
+  });
+
+  await t.test('callback rejects a wrong or missing state, a denial, and a bad code', async () => {
+    const go = await hop(web.base, '/api/github/oauth/login');
+    const state = new URL(go.location).searchParams.get('state');
+    assert.equal((await hop(web.base, `/api/github/oauth/callback?code=good-code&state=other`, go.cookie)).location, '/?auth=github_state');
+    assert.equal((await hop(web.base, `/api/github/oauth/callback?code=good-code&state=${state}`)).location, '/?auth=github_state'); // no cookie: not this browser
+    const go2 = await hop(web.base, '/api/github/oauth/login');
+    assert.equal((await hop(web.base, `/api/github/oauth/callback?error=access_denied&state=x`, go2.cookie)).location, '/?auth=github_denied');
+    const go3 = await hop(web.base, '/api/github/oauth/login');
+    const s3 = new URL(go3.location).searchParams.get('state');
+    assert.equal((await hop(web.base, `/api/github/oauth/callback?code=wrong&state=${s3}`, go3.cookie)).location, '/?auth=github_failed');
+  });
+
+  await t.test('connect for push and pull: needs a login, asks for the repository permission, links the account', async () => {
+    assert.equal((await hop(web.base, '/api/github/oauth/connect')).location, '/?auth=login_first');
+    const user = await call(web.base, 'POST', '/api/signup', { email: 'webconnect@example.com', password: 'password-123' });
+    const go = await hop(web.base, '/api/github/oauth/connect', user.cookie);
+    assert.equal(new URL(go.location).searchParams.get('scope'), 'public_repo');
+    const state = new URL(go.location).searchParams.get('state');
+    gh.user = { login: 'connector', id: 9100 };
+    gh.webScope = 'public_repo';
+    const both = `${user.cookie}; ${go.cookie}`;
+    const back = await hop(web.base, `/api/github/oauth/callback?code=good-code&state=${state}`, both);
+    assert.equal(back.location, '/profile.html#github');
+    const st = (await call(web.base, 'GET', '/api/github/status', undefined, user.cookie)).json;
+    assert.deepEqual([st.connected, st.login], [true, 'connector']);
+    assert.equal((await db.query("SELECT github_id FROM users WHERE email = 'webconnect@example.com'")).rows[0].github_id, '9100');
+
+    // an account that already belongs to someone else is refused
+    const other = await call(web.base, 'POST', '/api/signup', { email: 'webother@example.com', password: 'password-123' });
+    const go2 = await hop(web.base, '/api/github/oauth/connect', other.cookie);
+    const s2 = new URL(go2.location).searchParams.get('state');
+    const refused = await hop(web.base, `/api/github/oauth/callback?code=good-code&state=${s2}`, `${other.cookie}; ${go2.cookie}`);
+    assert.equal(refused.location, '/profile.html?auth=github_taken#github');
+    gh.webScope = '';
   });
 });

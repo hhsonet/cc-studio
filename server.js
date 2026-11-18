@@ -12,6 +12,8 @@ const { createDb } = require('./lib/db');
 const { createAuthRouter } = require('./lib/auth');
 const { createClassesRouter } = require('./lib/classes');
 const { createGithubRouter } = require('./lib/github');
+const { createSettingsStore, createSettingsRouter } = require('./lib/settings');
+const { createAdminRouter } = require('./lib/admin');
 
 /**
  * Build the Express app: security headers plus the static page. All code execution
@@ -57,7 +59,15 @@ function createApp({ runner, db, github = {}, logger = console } = {}) {
   // Accounts and cloud-saved files. Without a database the app still works, just without login.
   if (db) {
     app.use('/api/classes', createClassesRouter({ db, logger }));
-    app.use('/api/github', createGithubRouter({ db, logger, ...github }));
+    // GitHub app settings: saved by an admin (Admin page), with the environment as the default.
+    const settings = createSettingsStore({
+      db,
+      tokenKey: github.tokenKey,
+      defaults: { clientId: github.clientId, clientSecret: github.clientSecret, publicUrl: github.publicUrl, scope: github.scope },
+    });
+    app.use('/api/admin/settings', createSettingsRouter({ db, settings, fetchImpl: github.fetchImpl, logger }));
+    app.use('/api/admin', createAdminRouter({ db, logger }));
+    app.use('/api/github', createGithubRouter({ db, settings, tokenKey: github.tokenKey, fetchImpl: github.fetchImpl, logger }));
     app.use('/api', createAuthRouter({ db, logger }));
   }
 
@@ -91,7 +101,13 @@ async function main() {
     runner,
     db,
     // Export to GitHub needs an OAuth App's Client ID (device flow on) and a 32-byte key for the stored tokens.
-    github: { clientId: process.env.GITHUB_CLIENT_ID, scope: process.env.GITHUB_SCOPE || 'public_repo', tokenKey: process.env.TOKEN_ENCRYPTION_KEY },
+    github: {
+      clientId: process.env.GITHUB_CLIENT_ID,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET, // with this, GitHub sign-in uses the normal Authorize page instead of a typed code
+      publicUrl: process.env.PUBLIC_URL, // e.g. https://cc.example.com: where GitHub sends users back to
+      scope: process.env.GITHUB_SCOPE || 'public_repo',
+      tokenKey: process.env.TOKEN_ENCRYPTION_KEY,
+    },
   }));
   attachInteractive(server, {
     runner,

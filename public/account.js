@@ -14,6 +14,9 @@
   let saveTimer = null;
   let applying = false; // true while a cloud copy is being loaded, so it is not echoed back
   let mode = 'login'; // 'login' | 'signup' in the dialog
+  let githubLogin = false; // the server has a GitHub app: show "Continue with GitHub"
+  let githubWeb = false; // it also has a client secret: use GitHub's Authorize page instead of a typed code
+  let ghPoll = null;
   let viewing = false; // a teacher is looking at a student's files: never save or sync
 
   async function call(method, path, body) {
@@ -44,6 +47,7 @@
     $('user-name').textContent = user ? label : 'cc-studio';
     $('user-sub').textContent = user ? 'Signed in · Settings' : 'Settings';
     $('acct-section').hidden = false;
+    $('acct-admin').hidden = !(user && user.role === 'superadmin');
     if (window.CCGithub) window.CCGithub.setUser(user && !viewing ? user : null);
     $('share').hidden = !(user && (user.role === 'teacher' || user.role === 'superadmin') && !viewing);
     $('acct-out').hidden = !!user;
@@ -156,6 +160,8 @@
     $('auth-account').hidden = !user;
     if (user) $('auth-who').textContent = user.username || user.email;
     else { setMode('login'); $('auth-password').value = ''; }
+    $('auth-gh').hidden = !githubLogin;
+    $('auth-gh-box').hidden = true;
     if (!dlg.open) dlg.showModal();
     if (!user) $('auth-email').focus();
   }
@@ -227,6 +233,57 @@
     }
   }
 
+  // ---- Sign in with GitHub (device login: no password, no redirect) ----
+  function stopGithubPoll() { clearTimeout(ghPoll); ghPoll = null; }
+
+  const AUTH_MESSAGES = {
+    github_denied: 'You declined the request on GitHub.',
+    github_state: 'The GitHub sign-in could not be verified (it may have expired). Please try again.',
+    github_failed: 'GitHub sign-in failed. Please try again.',
+    login_first: 'Log in first, then connect GitHub.',
+    github_taken: 'That GitHub account already belongs to another cc-studio account.',
+    github_other: 'This cc-studio account is already tied to a different GitHub account.',
+  };
+
+  async function githubSignIn() {
+    if (githubWeb) { window.location.href = '/api/github/oauth/login'; return; } // GitHub's own Authorize page, then back here
+    const btn = $('auth-gh-btn');
+    btn.disabled = true;
+    showError('');
+    try {
+      const r = await call('POST', '/github/login/start', {});
+      if (!r.ok) { showError((r.json && r.json.error) || 'Could not start the GitHub sign-in.'); return; }
+      const uri = String(r.json.verificationUri || '');
+      if (!uri.startsWith('https://github.com/')) { showError('GitHub sent an unexpected address. Try again.'); return; }
+      $('auth-gh-verify').href = uri;
+      $('auth-gh-code').textContent = r.json.userCode;
+      $('auth-gh-box').hidden = false;
+      pollGithubSignIn(r.json.loginId, r.json.interval || 5);
+    } catch {
+      showError('Could not reach the server.');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function pollGithubSignIn(loginId, seconds) {
+    stopGithubPoll();
+    ghPoll = setTimeout(async () => {
+      if (!$('auth-dialog').open) return; // closed: stop asking
+      let r;
+      try { r = await call('POST', '/github/login/poll', { loginId }); } catch { pollGithubSignIn(loginId, seconds); return; }
+      if (!r.ok) { $('auth-gh-box').hidden = true; showError((r.json && r.json.error) || 'GitHub sign-in failed.'); return; }
+      const s = r.json.status;
+      if (s === 'pending') { pollGithubSignIn(loginId, r.json.interval || seconds); return; }
+      $('auth-gh-box').hidden = true;
+      if (s !== 'connected') { showError(s === 'denied' ? 'You declined the request on GitHub.' : 'That code expired. Click Continue with GitHub for a new one.'); return; }
+      user = r.json.user;
+      $('auth-dialog').close();
+      renderButton();
+      await syncAfterLogin();
+    }, seconds * 1000);
+  }
+
   async function logout() {
     clearTimeout(saveTimer);
     if (user) await pushNow(); // do not lose the last edits
@@ -242,12 +299,19 @@
     try { me = await call('GET', '/me'); } catch { return; }
     if (!me.ok) return; // no database configured: accounts are off
     user = me.json && me.json.user;
+    try {
+      const g = await (await fetch('/api/github/login/status')).json();
+      githubLogin = Boolean(g.enabled);
+      githubWeb = Boolean(g.webFlow);
+    } catch { githubLogin = false; }
     renderButton();
 
     $('share').addEventListener('click', openShare);
     $('share-cancel').addEventListener('click', () => $('share-dialog').close());
     $('share-form').addEventListener('submit', sendShare);
     $('share-dialog').addEventListener('mousedown', (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });
+    $('auth-gh-btn').addEventListener('click', githubSignIn);
+    $('auth-dialog').addEventListener('close', stopGithubPoll);
     $('menu-login').addEventListener('click', () => { closeMenu(); openDialog(); });
     $('menu-logout').addEventListener('click', () => { closeMenu(); logout(); });
     $('auth-form').addEventListener('submit', submit);
@@ -266,6 +330,12 @@
       }).catch(() => {});
     });
 
+    // Coming back from GitHub with a problem: say so in the login dialog.
+    const problem = AUTH_MESSAGES[new URLSearchParams(window.location.search).get('auth')];
+    if (problem) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.hash);
+      if (!user) { openDialog(); showError(problem); }
+    }
     if (user && (await openStudentView())) return;
     if (user) await syncAfterLogin();
   }

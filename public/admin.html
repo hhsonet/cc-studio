@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>Admin · cc-studio</title>
+  <link rel="stylesheet" href="fonts.css">
+  <link rel="stylesheet" href="profile.css">
+  <link rel="stylesheet" href="shell.css">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body data-nav="admin">
+  <main id="page" class="page wide">
+    <p id="loading" class="loading muted">Loading…</p>
+
+    <section id="denied" class="denied card" hidden>
+      <h1>Admins only</h1>
+      <p id="denied-text" class="muted">Log in as a super admin to open this page.</p>
+      <a class="btn primary" href="/">Go to the editor</a>
+    </section>
+
+    <div id="content" hidden>
+    <!-- Overview -->
+    <div id="pane-overview" class="pane">
+      <div class="greet">
+        <div class="grow">
+          <h1 id="greeting">Hello</h1>
+          <p id="today" class="muted"></p>
+        </div>
+        <div class="greet-actions">
+          <a class="btn" href="/"><svg class="i"><use href="#i-code"/></svg>Open editor</a>
+          <a class="btn" href="#github"><svg class="i"><use href="#i-github"/></svg>GitHub settings</a>
+        </div>
+      </div>
+
+      <section id="stat-strip" class="strip" aria-label="Key numbers"></section>
+
+      <div class="grid">
+        <div class="col">
+          <section class="card">
+            <div class="card-head">
+              <h2>Accounts</h2>
+              <div class="seg small" id="acct-tabs" role="tablist">
+                <button type="button" class="on" data-list="newest">Newest</button>
+                <button type="button" data-list="teacher">Teachers</button>
+                <button type="button" data-list="student">Students</button>
+              </div>
+              <a class="more" href="#users">View all</a>
+            </div>
+            <ul id="acct-list" class="rows"></ul>
+            <p id="acct-empty" class="muted pad" hidden></p>
+          </section>
+
+          <section class="card">
+            <div class="card-head"><h2>Classes</h2><a class="more" href="#classes">All classes</a></div>
+            <div class="table-wrap">
+              <table id="ov-classes" class="plain-table" hidden>
+                <thead><tr><th>Class</th><th>Teacher</th><th>Students</th><th>Created</th></tr></thead>
+                <tbody id="ov-classes-body"></tbody>
+              </table>
+            </div>
+            <p id="ov-classes-empty" class="muted pad" hidden>No classes yet. Teachers create them from the Classes page.</p>
+          </section>
+        </div>
+
+        <div class="col">
+          <section class="card">
+            <div class="card-head"><h2>Needs attention</h2></div>
+            <ul id="attention" class="rows"></ul>
+          </section>
+          <section class="card">
+            <div class="card-head"><h2>System</h2></div>
+            <dl id="system" class="kv"></dl>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <!-- Users -->
+    <div id="pane-users" class="pane" hidden>
+      <div class="page-head"><h1>Users</h1><p class="muted">Everyone with an account. Change roles, reset passwords or remove accounts.</p></div>
+      <section class="card">
+        <div class="filters">
+          <label class="grow">Search
+            <input id="u-q" type="search" placeholder="Name or email" autocomplete="off" spellcheck="false">
+          </label>
+          <label>Role
+            <select id="u-role">
+              <option value="">All roles</option>
+              <option value="student">Students</option>
+              <option value="teacher">Teachers</option>
+              <option value="superadmin">Super admins</option>
+            </select>
+          </label>
+        </div>
+        <p id="u-count" class="hint"></p>
+        <p id="u-msg" class="msg" role="status" hidden></p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>User</th><th>Role</th><th>Signs in with</th><th>Joined</th><th>Last saved</th><th></th></tr></thead>
+            <tbody id="u-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- Classes -->
+    <div id="pane-classes" class="pane" hidden>
+      <div class="page-head"><h1>Classes</h1><p class="muted">Every class on the server. Teachers create and run their own; you can remove any of them.</p></div>
+      <section class="card">
+        <p id="c-msg" class="msg" role="status" hidden></p>
+        <p id="c-empty" class="muted" hidden>No classes yet.</p>
+        <div class="table-wrap">
+          <table id="c-table" hidden>
+            <thead><tr><th>Class</th><th>Teacher</th><th>Students</th><th>Assignments</th><th>Join code</th><th>Created</th><th></th></tr></thead>
+            <tbody id="c-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- GitHub -->
+    <div id="pane-github" class="pane narrow" hidden>
+      <div class="page-head"><h1>GitHub</h1><p class="muted">How people sign in with GitHub and push or pull their code. Changes apply right away.</p></div>
+  <section class="card">
+    <h2>GitHub sign-in and export</h2>
+    <p id="state" class="state"></p>
+    <p id="msg" class="msg" role="status" hidden></p>
+
+    <form id="form" novalidate>
+      <label>Public address of cc-studio
+        <input id="a-url" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://cc.yourdomain.com">
+        <span id="src-url" class="source"></span>
+      </label>
+      <p class="hint">The address people open in their browser, starting with https://. GitHub sends users back here after they approve.</p>
+
+      <label>Callback URL for your GitHub OAuth App
+        <span class="copy-row">
+          <input id="a-callback" type="text" readonly>
+          <button id="copy" class="btn" type="button">Copy</button>
+        </span>
+      </label>
+      <p id="callback-note" class="hint">Paste this into your OAuth App at github.com → Settings → Developer settings → OAuth Apps → <em>Authorization callback URL</em>.</p>
+
+      <label>Client ID
+        <input id="a-id" type="text" autocomplete="off" spellcheck="false" placeholder="Ov23li…">
+        <span id="src-id" class="source"></span>
+      </label>
+
+      <label>Client secret
+        <input id="a-secret" type="password" autocomplete="new-password" spellcheck="false" placeholder="">
+        <span id="src-secret" class="source"></span>
+      </label>
+      <p id="secret-note" class="hint">Generate it on the same OAuth App page (“Generate a new client secret”). It is shown once by GitHub, stored encrypted here, and never displayed again. Leave the box empty to keep the saved one.</p>
+
+      <label>Repository permission
+        <select id="a-scope">
+          <option value="public_repo">Public repositories only (recommended)</option>
+          <option value="repo">Public and private repositories</option>
+        </select>
+      </label>
+      <p class="hint">What users are asked for when they connect GitHub for push and pull. Signing in alone asks only for their public profile. A change applies to users who connect after it.</p>
+
+      <div class="actions">
+        <button id="remove-secret" class="btn danger" type="button" hidden>Remove secret</button>
+        <button id="check" class="btn" type="button">Check with GitHub</button>
+        <button id="save" class="btn primary" type="submit">Save</button>
+      </div>
+    </form>
+    <p id="check-msg" class="msg" role="status" hidden></p>
+  </section>
+
+  <section class="card">
+    <h2>How to set it up</h2>
+    <ol class="steps">
+      <li>Open <strong>github.com → Settings → Developer settings → OAuth Apps → cc-studio</strong>.</li>
+      <li>Type your public address above and click <strong>Save</strong>. Copy the callback URL it shows into <em>Authorization callback URL</em>, and save the app on GitHub.</li>
+      <li>On GitHub, click <strong>Generate a new client secret</strong>, copy it, and paste it into <em>Client secret</em> here. Check the Client ID too, then click <strong>Save</strong>.</li>
+      <li>Open the login dialog in another window. <strong>Continue with GitHub</strong> should now take users to GitHub's Authorize page, with no code to type.</li>
+    </ol>
+    <p class="hint">Until a client secret is saved, GitHub sign-in falls back to typing a short code on github.com. Changes apply right away, with no restart.</p>
+  </section>
+    </div>
+    </div>
+  </main>
+  <script src="theme.js"></script>
+  <script src="shell.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

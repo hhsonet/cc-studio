@@ -3,20 +3,6 @@
 (function () {
   const $ = (id) => document.getElementById(id);
 
-  // ---- Theme: same saved theme and accent as the editor ----
-  const ACCENTS = { teal: ['#7fc4b0', '#1f7a68'], blue: ['#7fb0e8', '#2a62b8'], amber: ['#e0b060', '#a86a10'], violet: ['#b79be0', '#6a45b8'] };
-  const PALETTE = {
-    dark: { bg: '#111314', bg2: '#141617', bd: '#26292a', bd2: '#2f3334', fg: '#d6d9d8', mu: '#9aa19f', mu2: '#7d8584', hov: '#1c1f20', inp: '#0d0f10', err: '#e07a72', onac: '#0d1211' },
-    light: { bg: '#f6f7f7', bg2: '#eceeee', bd: '#dcdfdf', bd2: '#cfd3d3', fg: '#1b1f1f', mu: '#4f5856', mu2: '#626b69', hov: '#e3e6e6', inp: '#ffffff', err: '#c0392b', onac: '#ffffff' },
-  };
-  try {
-    const s = JSON.parse(localStorage.getItem('cc-studio:v1')) || {};
-    const mode = s.mode === 'light' ? 'light' : 'dark';
-    const ac = (ACCENTS[s.acc] || ACCENTS.teal)[mode === 'dark' ? 0 : 1];
-    for (const [k, v] of Object.entries({ ...PALETTE[mode], ac, ac2: ac, acbg: ac + (mode === 'dark' ? '33' : '22') })) document.documentElement.style.setProperty(`--${k}`, v);
-    document.documentElement.style.colorScheme = mode;
-  } catch { /* keep the dark default */ }
-
   // ---- Helpers ----
   async function call(method, path, body) {
     const res = await fetch(`/api${path}`, {
