@@ -13,7 +13,7 @@ const ABOUT_RE = /^(about|sonet|hhs|hhsonet|hasan\s+sonet)$/i;
 
 const STORAGE_KEY = 'cc-studio:v1';
 const MONACO_BASE = 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min';
-const ALLOWED_EXT = /\.(c|cpp|cc|cxx|h|hpp|hh|hxx|txt)$/i;
+const ALLOWED_EXT = /\.(c|cpp|cc|cxx|h|hpp|hh|hxx|txt|md)$/i;
 const MAX_FILE_BYTES = 64 * 1024;
 
 // The default project: one plain Hello World.
@@ -216,9 +216,9 @@ const $ = (id) => document.getElementById(id);
 
 // ---- Small helpers ----
 
-const langOf = (p) => (/\.(cpp|cc|cxx|hpp|hh|hxx)$/i.test(p) ? 'C++' : /\.(c|h)$/i.test(p) ? 'C' : 'Text');
+const langOf = (p) => (/\.(cpp|cc|cxx|hpp|hh|hxx)$/i.test(p) ? 'C++' : /\.(c|h)$/i.test(p) ? 'C' : /\.md$/i.test(p) ? 'Markdown' : 'Text');
 const runLanguage = (p) => ({ 'C++': 'cpp', C: 'c' }[langOf(p)] || null);
-const monacoLang = (p) => ({ 'C++': 'cpp', C: 'c' }[langOf(p)] || 'plaintext');
+const monacoLang = (p) => ({ 'C++': 'cpp', C: 'c', Markdown: 'markdown' }[langOf(p)] || 'plaintext');
 const baseName = (p) => p.split('/').pop();
 
 /** Same rules as the server (lib/validate.js): relative path of safe characters, known extension. */
@@ -860,7 +860,7 @@ nameInput.addEventListener('keydown', (e) => {
   if (!p || state.files[p] !== undefined) return cancelAdd();
   if (!validName(p)) {
     nameInput.classList.add('bad');
-    nameInput.title = 'Use letters, digits, _ - . / and a .c .cpp .h .hpp or .txt extension';
+    nameInput.title = 'Use letters, digits, _ - . / and a .c .cpp .h .hpp .txt or .md extension';
     return;
   }
   cancelAdd();
@@ -874,7 +874,7 @@ $('upload-input').addEventListener('change', async (e) => {
   const list = Array.from(e.target.files || []);
   e.target.value = '';
   for (const f of list) {
-    if (!ALLOWED_EXT.test(f.name)) { logLine(`Skipped ${f.name}: only .c .cpp .h .hpp .txt files`, 'warn'); continue; }
+    if (!ALLOWED_EXT.test(f.name)) { logLine(`Skipped ${f.name}: only .c .cpp .h .hpp .txt .md files`, 'warn'); continue; }
     if (f.size > MAX_FILE_BYTES) { logLine(`Skipped ${f.name}: larger than 64 KB`, 'warn'); continue; }
     const safe = f.name.replace(/[^A-Za-z0-9_.\-]/g, '_');
     let p = `src/${safe}`;
@@ -895,7 +895,7 @@ function flashFormat(text) {
 
 async function formatCurrent() {
   if (formatBtn.disabled) return;
-  if (langOf(state.open) === 'Text') { flashFormat('C/C++ only'); return; }
+  if (!['C', 'C++'].includes(langOf(state.open))) { flashFormat('C/C++ only'); return; }
   formatBtn.disabled = true;
   try {
     await editorReady;

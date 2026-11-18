@@ -63,3 +63,9 @@ td.user { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
   .facts div { flex-direction: column; gap: 0; }
 }
 td select { margin: 0; padding: 4px 8px; font-size: 13px; width: auto; background: var(--inp); color: var(--fg); border: 1px solid var(--bd2); border-radius: 5px; }
+
+/* GitHub card */
+.gh-code { display: block; margin: 8px 0; padding: 10px 14px; text-align: center; background: var(--inp); border: 1px solid var(--bd2); border-radius: 6px; font: 600 24px var(--mono); letter-spacing: 0.2em; color: var(--ac2); user-select: all; }
+.gh-actions { gap: 8px; flex-wrap: wrap; }
+#gh-off .actions { margin-top: 12px; }
+#github a { color: var(--ac2); }

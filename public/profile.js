@@ -120,6 +120,125 @@
     }
   });
 
+  // ---- GitHub: connect with the device login, then link the one repository the editor pushes to and pulls from ----
+  let ghStatus = null;
+  let ghPoll = null;
+  const gcall = (method, path, body) => call(method, `/github${path}`, body);
+
+  function showGithub() {
+    const s = ghStatus;
+    $('github').hidden = !(s && s.enabled);
+    if (!s || !s.enabled) return;
+    $('gh-off').hidden = s.connected;
+    $('gh-on').hidden = !s.connected;
+    if (!s.connected) return;
+    $('gh-login').textContent = `@${s.login}`;
+    const now = $('gh-repo-now');
+    now.replaceChildren();
+    if (s.repo) {
+      const a = document.createElement('a');
+      a.href = `https://github.com/${encodeURIComponent(s.login)}/${encodeURIComponent(s.repo)}`;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.textContent = `${s.login}/${s.repo}`;
+      now.append(a);
+    } else {
+      now.textContent = 'None yet';
+    }
+    $('gh-repo-label').textContent = s.repo ? 'Change repository' : 'Link a repository';
+    $('gh-link').textContent = s.repo ? 'Change' : 'Link repository';
+    $('gh-unlink').hidden = !s.repo;
+  }
+
+  async function loadGithub() {
+    const r = await gcall('GET', '/status');
+    ghStatus = r.ok ? r.json : null;
+    showGithub();
+    if (ghStatus && ghStatus.connected) {
+      const list = $('gh-repo-list');
+      const repos = await gcall('GET', '/repos');
+      list.replaceChildren();
+      if (repos.ok) for (const x of repos.json.repos) list.append(new Option(x.description || '', x.name));
+    }
+    if (window.location.hash === '#github' && !$('github').hidden) $('github').scrollIntoView();
+  }
+
+  function pollGithub(seconds) {
+    clearTimeout(ghPoll);
+    ghPoll = setTimeout(async () => {
+      let r;
+      try { r = await gcall('POST', '/device/poll', {}); } catch { pollGithub(seconds); return; }
+      const st = r.json && r.json.status;
+      if (st === 'connected') { $('gh-code-box').hidden = true; message($('gh-msg'), ''); await loadGithub(); return; }
+      if (st === 'pending') { pollGithub(r.json.interval || seconds); return; }
+      $('gh-code-box').hidden = true;
+      message($('gh-msg'), st === 'denied' ? 'You declined the request on GitHub.' : 'That code expired. Click Connect GitHub for a new one.', 'err');
+    }, seconds * 1000);
+  }
+
+  $('gh-connect').addEventListener('click', async () => {
+    message($('gh-msg'), '');
+    const btn = $('gh-connect');
+    btn.disabled = true;
+    try {
+      const r = await gcall('POST', '/device/start', {});
+      if (!r.ok) return message($('gh-msg'), (r.json && r.json.error) || 'Could not start the GitHub login.', 'err');
+      const uri = String(r.json.verificationUri || '');
+      if (!uri.startsWith('https://github.com/')) return message($('gh-msg'), 'GitHub sent an unexpected address. Try again.', 'err');
+      $('gh-verify').href = uri;
+      $('gh-code').textContent = r.json.userCode;
+      $('gh-code-box').hidden = false;
+      pollGithub(r.json.interval || 5);
+      return null;
+    } catch {
+      return message($('gh-msg'), 'Could not reach the server.', 'err');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  $('gh-repo-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const repo = $('gh-repo').value.trim();
+    if (!repo) return message($('gh-msg'), 'Choose or type a repository name.', 'err');
+    message($('gh-msg'), '');
+    const btn = $('gh-link');
+    btn.disabled = true;
+    try {
+      let r = await gcall('PUT', '/repo', { repo });
+      if (r.status === 404 && r.json && r.json.canCreate) {
+        if (!window.confirm(`There is no repository called "${repo}" on your GitHub that cc-studio can see.\n\nCreate it as a new public repository?`)) { message($('gh-msg'), r.json.error, 'err'); return null; }
+        r = await gcall('PUT', '/repo', { repo, create: true });
+      }
+      if (!r.ok) {
+        message($('gh-msg'), (r.json && r.json.error) || 'Could not link the repository.', 'err');
+        if (r.json && r.json.needsConnect) await loadGithub();
+        return null;
+      }
+      $('gh-repo').value = '';
+      message($('gh-msg'), `Linked ${r.json.fullName}. Use GitHub in the editor to push and pull.`, 'ok');
+      await loadGithub();
+      return null;
+    } catch {
+      return message($('gh-msg'), 'Could not reach the server.', 'err');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  $('gh-unlink').addEventListener('click', async () => {
+    await gcall('DELETE', '/repo');
+    message($('gh-msg'), 'Repository unlinked. Your files here and on GitHub are untouched.', 'ok');
+    await loadGithub();
+  });
+
+  $('gh-disconnect').addEventListener('click', async () => {
+    if (!window.confirm('Disconnect GitHub? cc-studio forgets your login and the linked repository. Nothing on GitHub changes.')) return;
+    await gcall('DELETE', '');
+    message($('gh-msg'), 'GitHub disconnected here. To revoke access completely, remove the app in your GitHub settings.', 'ok');
+    await loadGithub();
+  });
+
   $('logout').addEventListener('click', async () => {
     try { await call('POST', '/logout', {}); } catch { /* cookie expires on its own */ }
     window.location.href = '/';
@@ -134,6 +253,7 @@
     const ws = await call('GET', '/workspace');
     showProfile(me, ws.ok ? ws.json.workspace : null, ws.ok ? ws.json.updatedAt : null);
     $('signed-in').hidden = false;
+    loadGithub();
     if (me.role === 'superadmin') { $('admin').hidden = false; await loadUsers(); }
   })();
 })();

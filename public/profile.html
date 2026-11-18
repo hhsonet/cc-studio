@@ -63,6 +63,40 @@
         </form>
       </section>
 
+      <section id="github" class="card" hidden>
+        <h2>GitHub</h2>
+        <p id="gh-msg" class="msg" role="status" hidden></p>
+
+        <div id="gh-off" hidden>
+          <p class="muted">Connect your GitHub account to push and pull your code from the editor. You approve it on github.com, and cc-studio never sees your password.</p>
+          <div id="gh-code-box" hidden>
+            <p class="muted">1. Open <a id="gh-verify" target="_blank" rel="noopener noreferrer">github.com/login/device</a><br>2. Enter this code:</p>
+            <code id="gh-code" class="gh-code"></code>
+            <p class="muted small">Waiting for you to approve…</p>
+          </div>
+          <div class="actions"><button id="gh-connect" class="btn primary" type="button">Connect GitHub</button></div>
+        </div>
+
+        <div id="gh-on" hidden>
+          <dl class="facts">
+            <div><dt>Account</dt><dd id="gh-login"></dd></div>
+            <div><dt>Repository</dt><dd id="gh-repo-now"></dd></div>
+          </dl>
+          <form id="gh-repo-form" novalidate>
+            <label><span id="gh-repo-label">Link a repository</span>
+              <input id="gh-repo" type="text" list="gh-repo-list" maxlength="100" autocomplete="off" spellcheck="false" placeholder="Choose or type a repository name">
+              <datalist id="gh-repo-list"></datalist>
+            </label>
+            <p class="muted small">Your editor's Push and Pull buttons work on this one repository. Its files live in a folder with the same name.</p>
+            <div class="actions gh-actions">
+              <button id="gh-unlink" class="btn" type="button" hidden>Unlink repository</button>
+              <button id="gh-disconnect" class="btn danger" type="button">Disconnect GitHub</button>
+              <button id="gh-link" class="btn primary" type="submit">Link repository</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
       <section id="admin" class="card" hidden>
         <h2>All users</h2>
         <p id="admin-msg" class="msg" role="status" hidden></p>

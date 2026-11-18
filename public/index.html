@@ -38,8 +38,8 @@
           </button>
           <span class="grow">Files</span>
           <button id="new-file" class="tiny" type="button" title="New file" aria-label="New file">+</button>
-          <button id="upload" class="tiny" type="button" title="Upload .c, .cpp, .h or .txt" aria-label="Upload files">↑</button>
-          <input id="upload-input" type="file" accept=".c,.cpp,.cc,.cxx,.h,.hpp,.txt" multiple hidden>
+          <button id="upload" class="tiny" type="button" title="Upload .c, .cpp, .h, .txt or .md" aria-label="Upload files">↑</button>
+          <input id="upload-input" type="file" accept=".c,.cpp,.cc,.cxx,.h,.hpp,.txt,.md" multiple hidden>
         </div>
         <div class="tree-wrap">
           <div id="add-row" class="add-row" hidden>
@@ -169,64 +169,45 @@
   <dialog id="gh-dialog" class="auth-dialog" aria-labelledby="gh-title">
     <h2 id="gh-title">GitHub</h2>
 
-    <div id="gh-connect-view" hidden>
-      <p class="auth-note">Connect your GitHub account so cc-studio can add your project to one of your repositories. You approve it on github.com, and cc-studio never sees your password.</p>
-      <div id="gh-code-box" hidden>
-        <p class="auth-note">1. Open <a id="gh-verify" target="_blank" rel="noopener noreferrer">github.com/login/device</a><br>2. Enter this code:</p>
-        <code id="gh-code" class="gh-code"></code>
-        <p id="gh-wait" class="auth-note">Waiting for you to approve…</p>
-      </div>
-      <p id="gh-connect-error" class="auth-error" role="alert" hidden></p>
+    <div id="gh-setup" hidden>
+      <p id="gh-setup-text" class="auth-note"></p>
       <div class="auth-actions">
-        <button type="button" class="ghost gh-close">Cancel</button>
-        <button id="gh-connect" type="button" class="primary">Connect GitHub</button>
+        <button type="button" class="ghost gh-close">Close</button>
+        <a class="primary gh-link" href="/profile.html#github">Open profile</a>
       </div>
     </div>
 
-    <div id="gh-connected" hidden>
-      <p class="auth-note">Connected as <strong id="gh-login"></strong>. <button id="gh-disconnect" type="button" class="linkbtn">Disconnect</button></p>
+    <div id="gh-ready" hidden>
+      <p class="auth-note">Repository: <a id="gh-repo-link" target="_blank" rel="noopener noreferrer"></a>. Change it in your <a href="/profile.html#github">profile</a>.</p>
       <div class="seg gh-tabs" role="tablist">
-        <button id="gh-tab-push" type="button" role="tab" class="on">Push to GitHub</button>
-        <button id="gh-tab-pull" type="button" role="tab">Pull from GitHub</button>
+        <button id="gh-tab-push" type="button" role="tab" class="on">Push</button>
+        <button id="gh-tab-pull" type="button" role="tab">Pull</button>
       </div>
+
+      <form id="gh-export-view" novalidate>
+        <p id="gh-what" class="auth-note"></p>
+        <label>Commit message
+          <input id="gh-message" type="text" maxlength="200" autocomplete="off" placeholder="Update from cc-studio">
+        </label>
+        <p class="auth-note">Adds one commit with these files. Other files in the repository stay as they are.</p>
+        <p id="gh-error" class="auth-error" role="alert" hidden></p>
+        <p id="gh-result" class="auth-ok" role="status" hidden></p>
+        <div class="auth-actions">
+          <button type="button" class="ghost gh-close">Close</button>
+          <button id="gh-export" type="submit" class="primary">Push</button>
+        </div>
+      </form>
+
+      <form id="gh-import-view" novalidate hidden>
+        <p class="auth-note">Gets the repository's .c, .cpp, .h, .txt and .md files into the folder <strong id="gh-pull-folder"></strong>. Files with the same name are replaced (you are asked first if yours differ), and files that only exist here are kept.</p>
+        <p id="gh-pull-error" class="auth-error" role="alert" hidden></p>
+        <p id="gh-pull-result" class="auth-ok" role="status" hidden></p>
+        <div class="auth-actions">
+          <button type="button" class="ghost gh-close">Close</button>
+          <button id="gh-pull" type="submit" class="primary">Pull</button>
+        </div>
+      </form>
     </div>
-
-    <form id="gh-import-view" novalidate hidden>
-      <label>Repository
-        <input id="gh-pull-repo" type="text" list="gh-repo-list" maxlength="100" autocomplete="off" spellcheck="false" placeholder="Choose or type a repository name">
-        <datalist id="gh-repo-list"></datalist>
-      </label>
-      <label>Branch <span class="muted-inline">(optional, default branch if empty)</span>
-        <input id="gh-pull-branch" type="text" maxlength="255" autocomplete="off" spellcheck="false">
-      </label>
-      <p class="auth-note">The repository's .c, .cpp, .h and .txt files go into a folder with the repository's name. Pulling again updates that folder, and files that only exist here are kept.</p>
-      <p id="gh-pull-error" class="auth-error" role="alert" hidden></p>
-      <p id="gh-pull-result" class="auth-ok" role="status" hidden></p>
-      <div class="auth-actions">
-        <button type="button" class="ghost gh-close">Close</button>
-        <button id="gh-pull" type="submit" class="primary">Pull</button>
-      </div>
-    </form>
-
-    <form id="gh-export-view" novalidate hidden>
-      <label>What to export
-        <select id="gh-what"></select>
-      </label>
-      <label>Repository name
-        <input id="gh-repo" type="text" maxlength="100" autocomplete="off" spellcheck="false">
-      </label>
-      <label>Commit message
-        <input id="gh-message" type="text" maxlength="200" autocomplete="off" placeholder="Update from cc-studio">
-      </label>
-      <label id="gh-private-row" class="check" hidden><input id="gh-private" type="checkbox"> Make it a private repository (only when creating a new one)</label>
-      <p class="auth-note">A new repository is created if the name is free. Otherwise the files are added to it as one new commit, and other files in the repository stay as they are.</p>
-      <p id="gh-error" class="auth-error" role="alert" hidden></p>
-      <p id="gh-result" class="auth-ok" role="status" hidden></p>
-      <div class="auth-actions">
-        <button type="button" class="ghost gh-close">Close</button>
-        <button id="gh-export" type="submit" class="primary">Push</button>
-      </div>
-    </form>
   </dialog>
 
   <dialog id="share-dialog" class="auth-dialog" aria-labelledby="share-title">

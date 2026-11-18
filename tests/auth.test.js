@@ -27,6 +27,13 @@ test('cleanWorkspace accepts good files and rejects bad ones', () => {
   }
 });
 
+test('Markdown files are accepted everywhere files are', () => {
+  assert.ok(cleanWorkspace({ files: { 'README.md': '# Title', 'src/main.c': 'int main(){}' } }).value);
+  const { validateRunBody } = require('../lib/validate');
+  assert.equal(validateRunBody({ language: 'c', files: [{ path: 'main.c', content: 'int main(){}' }, { path: 'docs/NOTES.md', content: '# n' }] }).ok, true);
+  assert.equal(validateRunBody({ language: 'c', files: [{ path: 'main.c', content: 'x' }, { path: 'a.mdx', content: 'y' }] }).ok, false);
+});
+
 test('rate limiter blocks after max attempts', () => {
   const l = createLimiter({ max: 2, windowMs: 1000 });
   assert.deepEqual([l.take('a'), l.take('a'), l.take('a'), l.take('b')], [true, true, false, true]);

@@ -247,3 +247,4 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ac); outlin
 .gh-tabs { width: 100%; margin: 4px 0 14px; }
 .gh-tabs button { flex: 1; padding: 6px 10px; }
 .muted-inline { color: var(--mu2); font-weight: 400; }
+.gh-link { display: inline-block; text-decoration: none; padding: 6px 14px; border-radius: 5px; font: 600 13px var(--sans); background: var(--ac); color: var(--onac); }
