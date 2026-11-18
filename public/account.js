@@ -14,6 +14,7 @@
   let saveTimer = null;
   let applying = false; // true while a cloud copy is being loaded, so it is not echoed back
   let mode = 'login'; // 'login' | 'signup' in the dialog
+  let viewing = false; // a teacher is looking at a student's files: never save or sync
 
   async function call(method, path, body) {
     const res = await fetch(`/api${path}`, {
@@ -34,12 +35,30 @@
     el.hidden = !text;
   }
 
+  const ROLES = { superadmin: 'Super admin', teacher: 'Teacher', student: 'Student' };
+
+  /** The sidebar footer (avatar, name) and the account section at the top of the settings menu. */
   function renderButton() {
-    const btn = $('account-btn');
-    btn.hidden = false;
-    btn.textContent = user ? (user.username || user.email) : 'Log in';
-    btn.title = user ? 'Account' : 'Log in to save your files in the cloud';
-    if (!user) setStatus('');
+    const label = user ? (user.username || user.email) : '';
+    $('user-avatar').textContent = user ? label.charAt(0).toUpperCase() : 'cc';
+    $('user-name').textContent = user ? label : 'cc-studio';
+    $('user-sub').textContent = user ? 'Signed in · Settings' : 'Settings';
+    $('acct-section').hidden = false;
+    $('acct-out').hidden = !!user;
+    $('acct-in').hidden = !user;
+    if (user) {
+      $('acct-name').textContent = label;
+      const role = ROLES[user.role];
+      $('acct-role').hidden = !role;
+      $('acct-role').textContent = role || '';
+    } else {
+      setStatus('');
+    }
+  }
+
+  function closeMenu() {
+    $('settings-menu').hidden = true;
+    $('settings-btn').setAttribute('aria-expanded', 'false');
   }
 
   // ---- Cloud save ----
@@ -49,8 +68,10 @@
     if (!user) return;
     setStatus('Saving…', 'busy');
     try {
-      const r = await call('PUT', '/workspace', { workspace: api.getWorkspace() });
+      const sent = api.getWorkspace();
+      const r = await call('PUT', '/workspace', { workspace: sent });
       if (r.status === 401) { user = null; renderButton(); return; }
+      if (r.ok) markSynced(sent);
       setStatus(r.ok ? 'Saved to cloud' : (r.json && r.json.error) || 'Not saved', r.ok ? 'ok' : 'err');
     } catch {
       setStatus('Offline: not saved to cloud', 'err');
@@ -59,13 +80,29 @@
 
   /** Called by app.js after every local save. */
   function changed() {
-    if (!user || applying) return;
+    if (!user || applying || viewing) return;
     clearTimeout(saveTimer);
     setStatus('Unsaved changes', 'busy');
     saveTimer = setTimeout(pushNow, SAVE_DELAY);
   }
 
   const same = (a, b) => JSON.stringify(a.files) === JSON.stringify(b.files);
+
+  // Remember what this browser last had in sync with the cloud, so a change made elsewhere (another
+  // device, or a teacher's starter code) loads quietly instead of asking, as long as nothing local changed.
+  const SYNC_KEY = 'cc-studio:synced';
+  const hashOf = (ws) => {
+    const str = JSON.stringify(ws.files);
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return `${str.length}:${h >>> 0}`;
+  };
+  function markSynced(ws) {
+    try { localStorage.setItem(SYNC_KEY, JSON.stringify({ u: user.id, h: hashOf(ws) })); } catch { /* storage blocked */ }
+  }
+  function unchangedSinceSync(ws) {
+    try { const s = JSON.parse(localStorage.getItem(SYNC_KEY)); return !!s && s.u === user.id && s.h === hashOf(ws); } catch { return false; }
+  }
 
   /** Right after logging in: merge this browser's files with the saved cloud copy. */
   async function syncAfterLogin() {
@@ -75,14 +112,15 @@
     const cloud = r.json.workspace;
     const local = api.getWorkspace();
     if (!cloud) { await pushNow(); return; } // first time: this browser's files become the cloud copy
-    if (same(cloud, local)) { setStatus('Saved to cloud', 'ok'); return; }
-    const useCloud = api.isDefault() || window.confirm(
+    if (same(cloud, local)) { markSynced(cloud); setStatus('Saved to cloud', 'ok'); return; }
+    const useCloud = api.isDefault() || unchangedSinceSync(local) || window.confirm(
       'You have saved files in your account that differ from the files in this browser.\n\n'
       + 'OK: load your saved files (replaces what is open here).\n'
       + 'Cancel: keep what is open here and overwrite your saved files.');
     if (useCloud) {
       applying = true;
       try { api.setWorkspace(cloud); } finally { applying = false; }
+      markSynced(cloud);
       setStatus('Loaded from cloud', 'ok');
     } else {
       await pushNow();
@@ -160,7 +198,8 @@
     user = me.json && me.json.user;
     renderButton();
 
-    $('account-btn').addEventListener('click', openDialog);
+    $('menu-login').addEventListener('click', () => { closeMenu(); openDialog(); });
+    $('menu-logout').addEventListener('click', () => { closeMenu(); logout(); });
     $('auth-form').addEventListener('submit', submit);
     $('auth-switch').addEventListener('click', () => setMode(mode === 'login' ? 'signup' : 'login'));
     $('auth-logout').addEventListener('click', logout);
@@ -168,7 +207,7 @@
     // A click on the dimmed backdrop (the dialog element itself) closes it.
     $('auth-dialog').addEventListener('mousedown', (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });
     window.addEventListener('pagehide', () => {
-      if (!user) return;
+      if (!user || viewing) return;
       // keepalive lets the last save finish while the page is going away
       fetch('/api/workspace', {
         method: 'PUT', credentials: 'same-origin', keepalive: true,
@@ -177,7 +216,25 @@
       }).catch(() => {});
     });
 
+    if (user && (await openStudentView())) return;
     if (user) await syncAfterLogin();
+  }
+
+  /** /?view=<classId>:<studentId> (teachers): show that student's files as a throwaway copy. */
+  async function openStudentView() {
+    const m = /^(\d+):(\d+)$/.exec(new URLSearchParams(window.location.search).get('view') || '');
+    if (!m) return false;
+    const r = await call('GET', `/classes/${m[1]}/students/${m[2]}/workspace`);
+    if (!r.ok || !r.json.workspace) {
+      setStatus(r.ok ? 'That student has no saved files yet' : (r.json && r.json.error) || 'Could not open that student', 'err');
+      return r.ok; // no files: still stay out of the way of the teacher's own work
+    }
+    viewing = true;
+    api.enterViewOnly(`Viewing ${r.json.student}'s files from ${r.json.className}. This is a read-only copy: you can run and edit it, but nothing here is saved.`);
+    applying = true;
+    try { api.setWorkspace(r.json.workspace); } finally { applying = false; }
+    setStatus('');
+    return true;
   }
 
   window.CCAccount = { init, changed };

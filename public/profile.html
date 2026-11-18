@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>Profile · cc-studio</title>
+  <link rel="stylesheet" href="fonts.css">
+  <link rel="stylesheet" href="profile.css">
+</head>
+<body>
+  <header class="bar">
+    <a class="back" href="/">← Back to editor</a>
+    <div class="brand"><span class="logo">cc</span>cc-studio</div>
+  </header>
+
+  <main class="page">
+    <p id="loading" class="muted">Loading…</p>
+
+    <section id="signed-out" class="card" hidden>
+      <h1>You're not logged in</h1>
+      <p class="muted">Log in from the editor to see your profile.</p>
+      <a class="btn primary" href="/">Go to the editor</a>
+    </section>
+
+    <div id="signed-in" hidden>
+      <section class="card hero">
+        <span id="avatar" class="avatar"></span>
+        <div class="hero-text">
+          <h1 id="name"></h1>
+          <span id="role" class="chip" hidden></span>
+        </div>
+        <a class="btn" href="/classes.html">Classes</a>
+        <button id="logout" class="btn" type="button">Log out</button>
+      </section>
+
+      <section class="card">
+        <h2>Account</h2>
+        <dl class="facts">
+          <div><dt>Username</dt><dd id="f-username"></dd></div>
+          <div><dt>Email</dt><dd id="f-email"></dd></div>
+          <div><dt>Member since</dt><dd id="f-since"></dd></div>
+          <div><dt>Cloud files</dt><dd id="f-files"></dd></div>
+          <div><dt>Last saved</dt><dd id="f-saved"></dd></div>
+        </dl>
+      </section>
+
+      <section class="card">
+        <h2>Change password</h2>
+        <form id="pw-form" novalidate>
+          <label>Current password
+            <input id="pw-current" type="password" autocomplete="current-password" required maxlength="200">
+          </label>
+          <label>New password
+            <input id="pw-new" type="password" autocomplete="new-password" required minlength="8" maxlength="200">
+          </label>
+          <label>Confirm new password
+            <input id="pw-confirm" type="password" autocomplete="new-password" required maxlength="200">
+          </label>
+          <p id="pw-msg" class="msg" role="status" hidden></p>
+          <div class="actions"><button id="pw-submit" class="btn primary" type="submit">Update password</button></div>
+          <p class="muted small">Changing your password signs you out on your other devices.</p>
+        </form>
+      </section>
+
+      <section id="admin" class="card" hidden>
+        <h2>All users</h2>
+        <p id="admin-msg" class="msg" role="status" hidden></p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>User</th><th>Role</th><th>Joined</th><th>Last saved</th><th></th></tr></thead>
+            <tbody id="users"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+  <script src="profile.js"></script>
+</body>
+</html>

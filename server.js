@@ -10,6 +10,7 @@ const { createDockerRunner } = require('./lib/runner');
 const { attachInteractive } = require('./lib/interactive');
 const { createDb } = require('./lib/db');
 const { createAuthRouter } = require('./lib/auth');
+const { createClassesRouter } = require('./lib/classes');
 
 /**
  * Build the Express app: security headers plus the static page. All code execution
@@ -53,7 +54,10 @@ function createApp({ runner, db, logger = console } = {}) {
   );
 
   // Accounts and cloud-saved files. Without a database the app still works, just without login.
-  if (db) app.use('/api', createAuthRouter({ db, logger }));
+  if (db) {
+    app.use('/api/classes', createClassesRouter({ db, logger }));
+    app.use('/api', createAuthRouter({ db, logger }));
+  }
 
   // The formatter is a 2.5 MB file that never changes: let browsers keep it.
   app.use('/vendor', express.static(path.join(__dirname, 'public', 'vendor'), { maxAge: '7d' }));

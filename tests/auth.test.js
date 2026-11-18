@@ -113,6 +113,21 @@ test('accounts API against Postgres', { skip: !DB_URL && 'DATABASE_URL not set' 
     assert.equal(res2.status, 415);
   });
 
+  await t.test('change password', async () => {
+    const login = await call('POST', '/api/login', { email: 'ada@example.com', password: 'analytical-engine' });
+    const other = await call('POST', '/api/login', { email: 'ada@example.com', password: 'analytical-engine' });
+    const me = await call('GET', '/api/me', undefined, login.cookie);
+    assert.ok(me.json.user.id && me.json.user.createdAt);
+    assert.equal((await call('POST', '/api/password', { currentPassword: 'analytical-engine', newPassword: 'new-password-1' })).status, 401);
+    assert.equal((await call('POST', '/api/password', { currentPassword: 'wrong-wrong', newPassword: 'new-password-1' }, login.cookie)).status, 403);
+    assert.equal((await call('POST', '/api/password', { currentPassword: 'analytical-engine', newPassword: 'short' }, login.cookie)).status, 400);
+    assert.equal((await call('POST', '/api/password', { currentPassword: 'analytical-engine', newPassword: 'new-password-1' }, login.cookie)).status, 200);
+    assert.equal((await call('GET', '/api/me', undefined, login.cookie)).json.user.email, 'ada@example.com'); // this device stays signed in
+    assert.equal((await call('GET', '/api/me', undefined, other.cookie)).json.user, null); // other devices are signed out
+    assert.equal((await call('POST', '/api/login', { email: 'ada@example.com', password: 'analytical-engine' })).status, 401);
+    assert.equal((await call('POST', '/api/login', { email: 'ada@example.com', password: 'new-password-1' })).status, 200);
+  });
+
   await t.test('logout ends the session', async () => {
     assert.equal((await call('POST', '/api/logout', {}, cookie)).status, 200);
     assert.equal((await call('GET', '/api/me', undefined, cookie)).json.user, null);

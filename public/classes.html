@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>Classes · cc-studio</title>
+  <link rel="stylesheet" href="fonts.css">
+  <link rel="stylesheet" href="profile.css">
+  <link rel="stylesheet" href="classes.css">
+</head>
+<body>
+  <header class="bar">
+    <a class="back" href="/">← Back to editor</a>
+    <div class="brand"><span class="logo">cc</span>cc-studio</div>
+  </header>
+
+  <main class="page">
+    <p id="loading" class="muted">Loading…</p>
+
+    <section id="signed-out" class="card" hidden>
+      <h1>You're not logged in</h1>
+      <p class="muted">Log in from the editor to see your classes.</p>
+      <a class="btn primary" href="/">Go to the editor</a>
+    </section>
+
+    <!-- One class, opened from the list below -->
+    <div id="detail" hidden>
+      <a id="detail-back" class="back" href="#">← All classes</a>
+      <section class="card">
+        <div class="row">
+          <div class="grow">
+            <h1 id="d-name"></h1>
+            <p id="d-sub" class="muted small"></p>
+          </div>
+          <button id="d-leave" class="btn danger" type="button" hidden>Leave class</button>
+          <button id="d-delete" class="btn danger" type="button" hidden>Delete class</button>
+        </div>
+        <div id="d-code-row" class="code-row" hidden>
+          <span class="muted">Join code</span>
+          <code id="d-code" class="code"></code>
+          <button id="d-copy" class="btn" type="button">Copy</button>
+        </div>
+        <p id="d-msg" class="msg" role="status" hidden></p>
+      </section>
+
+      <section class="card">
+        <h2>Assignments</h2>
+        <p id="a-empty" class="muted" hidden></p>
+        <ul id="a-list" class="list"></ul>
+        <form id="a-form" class="inline-form" hidden novalidate>
+          <label class="grow">Title
+            <input id="a-title" type="text" maxlength="60" placeholder="Lab 1: Hello, World" autocomplete="off">
+          </label>
+          <label class="grow">Starter files
+            <select id="a-folder"></select>
+          </label>
+          <button class="btn primary" type="submit">Add assignment</button>
+        </form>
+        <p id="a-hint" class="muted small" hidden>The starter files come from your own saved files. Make a folder in the editor (while logged in), then pick it here. Students get a copy.</p>
+      </section>
+
+      <section id="roster-card" class="card" hidden>
+        <h2>Students <span id="r-count" class="muted"></span></h2>
+        <p id="r-empty" class="muted" hidden>No students yet. Share the join code above.</p>
+        <div class="table-wrap">
+          <table id="r-table" hidden>
+            <thead><tr><th>Student</th><th>Joined</th><th>Last saved</th><th>Files</th><th></th></tr></thead>
+            <tbody id="r-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <div id="list" hidden>
+      <section id="join-card" class="card" hidden>
+        <h2>Join a class</h2>
+        <form id="join-form" class="inline-form" novalidate>
+          <label class="grow">Class code
+            <input id="join-code" type="text" maxlength="20" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABC2345">
+          </label>
+          <button class="btn primary" type="submit">Join</button>
+        </form>
+        <p id="join-msg" class="msg" role="status" hidden></p>
+      </section>
+
+      <section id="new-card" class="card" hidden>
+        <h2>New class</h2>
+        <form id="new-form" class="inline-form" novalidate>
+          <label class="grow">Class name
+            <input id="new-name" type="text" maxlength="60" autocomplete="off" placeholder="CS101 · Fall">
+          </label>
+          <button class="btn primary" type="submit">Create class</button>
+        </form>
+        <p id="new-msg" class="msg" role="status" hidden></p>
+      </section>
+
+      <section class="card">
+        <h2 id="list-title">My classes</h2>
+        <p id="list-empty" class="muted" hidden></p>
+        <ul id="classes" class="list"></ul>
+      </section>
+    </div>
+  </main>
+  <script src="classes.js"></script>
+</body>
+</html>

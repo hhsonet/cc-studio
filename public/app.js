@@ -196,8 +196,10 @@ function loadState() {
 }
 
 let saveTimer = null;
+let viewOnly = false; // a teacher looking at a student's files: nothing may be saved over their own
 function flushSave() {
   clearTimeout(saveTimer);
+  if (viewOnly) return;
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch { /* storage full or blocked */ }
   if (window.CCAccount) window.CCAccount.changed(); // queue the cloud copy when signed in
 }
@@ -1363,6 +1365,14 @@ if (window.CCAccount) {
   window.CCAccount.init({
     getWorkspace: () => ({ files: state.files, open: state.open, collapsed: state.collapsed }),
     isDefault: () => JSON.stringify(state.files) === JSON.stringify(DEFAULT_FILES),
+    /** Show someone else's files in this tab without ever saving them (locally or to the cloud). */
+    enterViewOnly(message) {
+      viewOnly = true;
+      clearTimeout(saveTimer);
+      const banner = $('view-banner');
+      banner.textContent = message;
+      banner.hidden = false;
+    },
     setWorkspace(ws) {
       const files = cleanFiles(ws.files);
       if (!Object.keys(files).length) return;

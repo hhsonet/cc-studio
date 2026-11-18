@@ -19,13 +19,14 @@
       <span id="lang" class="chip"></span>
       <div class="grow"></div>
       <span id="cloud-status" class="cloud-status" role="status" hidden></span>
-      <button id="account-btn" class="ghost account-btn" type="button" hidden>Log in</button>
       <button id="format" class="ghost" type="button" title="Format the open file (Shift+Alt+F)">Format</button>
       <button id="run" class="primary" type="button" title="Compile and run (Ctrl+Enter)">
         <span class="spinner" hidden></span>
         <span class="label">Compile ⏎</span>
       </button>
     </header>
+
+    <div id="view-banner" class="view-banner" role="status" hidden></div>
 
     <div class="body">
       <aside id="sidebar" class="sidebar" aria-label="Project files">
@@ -47,6 +48,20 @@
 
         <div class="side-foot">
           <div id="settings-menu" class="popover" hidden>
+            <div id="acct-section" class="acct" hidden>
+              <div id="acct-out" class="acct-out">
+                <button id="menu-login" class="primary" type="button">Log in or sign up</button>
+                <span class="acct-hint">Save your files to the cloud.</span>
+              </div>
+              <div id="acct-in" class="acct-in" hidden>
+                <div class="acct-id"><span id="acct-name" class="acct-name"></span><span id="acct-role" class="chip" hidden></span></div>
+                <div class="acct-links">
+                  <a id="acct-profile" class="ghost" href="/profile.html">Profile</a>
+                  <a id="acct-classes" class="ghost" href="/classes.html">Classes</a>
+                  <button id="menu-logout" class="ghost" type="button">Log out</button>
+                </div>
+              </div>
+            </div>
             <div class="setting">
               <span class="grow">Theme</span>
               <div id="mode-seg" class="seg"></div>
@@ -85,8 +100,8 @@
             <button id="show-keys" class="menu-item" type="button">Keyboard shortcuts</button>
           </div>
           <button id="settings-btn" class="user" type="button" aria-haspopup="true" aria-expanded="false">
-            <span class="avatar">cc</span>
-            <span class="who"><span class="name">cc-studio</span><span class="sub">Settings</span></span>
+            <span id="user-avatar" class="avatar">cc</span>
+            <span class="who"><span id="user-name" class="name">cc-studio</span><span id="user-sub" class="sub">Settings</span></span>
             <span class="caret">⌃</span>
           </button>
         </div>

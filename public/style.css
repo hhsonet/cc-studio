@@ -211,7 +211,6 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ac); outlin
 .cloud-status { font: 500 11px var(--sans); color: var(--mu2); white-space: nowrap; }
 .cloud-status.ok { color: var(--ac2); }
 .cloud-status.err { color: var(--err, #e07a72); }
-.account-btn { max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
 .auth-dialog { margin: auto; width: min(380px, calc(100vw - 32px)); padding: 22px; background: var(--bg2); color: var(--fg); border: 1px solid var(--bd2); border-radius: 10px; box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5); }
 .auth-dialog::backdrop { background: rgba(0, 0, 0, 0.55); }
 .auth-dialog h2 { margin-bottom: 14px; font: 600 16px var(--sans); }
@@ -221,4 +220,19 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ac); outlin
 .auth-note { margin: 10px 0 0; color: var(--mu); font: 12px/1.5 var(--sans); }
 .auth-error { margin: 0 0 10px; color: var(--err, #e07a72); font: 500 12px var(--sans); }
 .auth-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
-@media (max-width: 760px) { .account-btn { max-width: 96px; } .cloud-status { display: none; } }
+@media (max-width: 760px) { .cloud-status { display: none; } }
+
+/* Account section at the top of the settings menu */
+.acct { padding: 8px 10px 10px; border-bottom: 1px solid var(--bd); margin-bottom: 4px; }
+.acct-out { display: flex; flex-direction: column; gap: 6px; }
+.acct-out .primary { width: 100%; }
+.acct-hint { color: var(--mu2); font: 11px var(--sans); text-align: center; }
+.acct-in { display: flex; flex-direction: column; gap: 8px; }
+.acct-id { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.acct-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg); font-weight: 600; }
+.acct-links { display: flex; gap: 8px; }
+.acct-links .ghost { flex: 1; text-align: center; text-decoration: none; padding: 5px 10px; }
+
+/* Teacher viewing a student's files */
+.view-banner { flex: none; padding: 8px 16px; background: var(--acbg); color: var(--ac2); border-bottom: 1px solid var(--bd); font: 500 12px var(--sans); }
+.acct-links { flex-wrap: wrap; }
