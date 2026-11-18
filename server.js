@@ -11,12 +11,13 @@ const { attachInteractive } = require('./lib/interactive');
 const { createDb } = require('./lib/db');
 const { createAuthRouter } = require('./lib/auth');
 const { createClassesRouter } = require('./lib/classes');
+const { createGithubRouter } = require('./lib/github');
 
 /**
  * Build the Express app: security headers plus the static page. All code execution
  * goes through the WebSocket endpoint attached in attachInteractive (lib/interactive.js).
  */
-function createApp({ runner, db, logger = console } = {}) {
+function createApp({ runner, db, github = {}, logger = console } = {}) {
   const app = express();
   app.locals.runner = runner;
   app.disable('x-powered-by');
@@ -56,6 +57,7 @@ function createApp({ runner, db, logger = console } = {}) {
   // Accounts and cloud-saved files. Without a database the app still works, just without login.
   if (db) {
     app.use('/api/classes', createClassesRouter({ db, logger }));
+    app.use('/api/github', createGithubRouter({ db, logger, ...github }));
     app.use('/api', createAuthRouter({ db, logger }));
   }
 
@@ -82,9 +84,15 @@ async function main() {
   const num = (name, fallback) => (Number(process.env[name]) > 0 ? Number(process.env[name]) : fallback);
   const limits = process.env.MAX_COMPILES ? { maxCompiles: num('MAX_COMPILES', undefined) } : {};
   const db = process.env.DATABASE_URL ? await createDb(process.env.DATABASE_URL) : null;
+  if (process.env.GITHUB_CLIENT_ID && !process.env.TOKEN_ENCRYPTION_KEY) console.warn('GITHUB_CLIENT_ID is set but TOKEN_ENCRYPTION_KEY is not: GitHub export stays off.');
   console.log(db ? 'Accounts enabled (Postgres connected)' : 'DATABASE_URL not set: accounts and cloud save are disabled');
   const runner = createDockerRunner({ image: process.env.RUNNER_IMAGE || 'gcc:13', limits });
-  const server = http.createServer(createApp({ runner, db }));
+  const server = http.createServer(createApp({
+    runner,
+    db,
+    // Export to GitHub needs an OAuth App's Client ID (device flow on) and a 32-byte key for the stored tokens.
+    github: { clientId: process.env.GITHUB_CLIENT_ID, scope: process.env.GITHUB_SCOPE || 'public_repo', tokenKey: process.env.TOKEN_ENCRYPTION_KEY },
+  }));
   attachInteractive(server, {
     runner,
     // Behind Caddy on the same host the real client IP is in X-Forwarded-For; only believe it

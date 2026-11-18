@@ -1361,6 +1361,22 @@ applyDiagnostics();
 
 // ---- Accounts and cloud save (public/account.js; stays hidden when the server has no database) ----
 
+if (window.CCGithub) {
+  window.CCGithub.init({
+    getWorkspace: () => ({ files: state.files }),
+    /** Pull: write a repository's files into <folder>/ (overwriting same-named files, keeping the rest). */
+    applyFolder(folder, files) {
+      for (const [path, text] of Object.entries(files)) state.files[`${folder}/${path}`] = text;
+      const mine = Object.keys(files).sort();
+      if (!state.open.startsWith(`${folder}/`) || state.files[state.open] === undefined) state.open = `${folder}/${mine.find((p) => /(^|\/)main\.(c|cpp)$/.test(p)) || mine[0]}`;
+      state.collapsed[folder] = false; // tree keys are folder paths without a trailing slash
+      if (editor) editor.reset();
+      openFile(state.open);
+      flushSave();
+    },
+  });
+}
+
 if (window.CCAccount) {
   window.CCAccount.init({
     getWorkspace: () => ({ files: state.files, open: state.open, collapsed: state.collapsed }),

@@ -236,3 +236,14 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ac); outlin
 /* Teacher viewing a student's files */
 .view-banner { flex: none; padding: 8px 16px; background: var(--acbg); color: var(--ac2); border-bottom: 1px solid var(--bd); font: 500 12px var(--sans); }
 .acct-links { flex-wrap: wrap; }
+
+/* Export to GitHub */
+.gh-code { display: block; margin: 8px 0; padding: 10px 14px; text-align: center; background: var(--inp); border: 1px solid var(--bd2); border-radius: 6px; font: 600 24px var(--mono); letter-spacing: 0.2em; color: var(--ac2); user-select: all; }
+.auth-dialog label.check { display: flex; align-items: flex-start; gap: 8px; color: var(--fg); font-weight: 400; }
+.auth-dialog label.check input { width: auto; margin: 3px 0 0; }
+.auth-dialog select { display: block; width: 100%; margin-top: 5px; padding: 8px 10px; background: var(--inp); color: var(--fg); border: 1px solid var(--bd2); border-radius: 5px; font: 13px var(--sans); }
+.auth-ok { margin: 0 0 10px; color: var(--ac2); font: 500 12px var(--sans); }
+.auth-ok a { color: inherit; }
+.gh-tabs { width: 100%; margin: 4px 0 14px; }
+.gh-tabs button { flex: 1; padding: 6px 10px; }
+.muted-inline { color: var(--mu2); font-weight: 400; }

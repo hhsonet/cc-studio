@@ -44,6 +44,7 @@
     $('user-name').textContent = user ? label : 'cc-studio';
     $('user-sub').textContent = user ? 'Signed in · Settings' : 'Settings';
     $('acct-section').hidden = false;
+    if (window.CCGithub) window.CCGithub.setUser(user && !viewing ? user : null);
     $('share').hidden = !(user && (user.role === 'teacher' || user.role === 'superadmin') && !viewing);
     $('acct-out').hidden = !!user;
     $('acct-in').hidden = !user;
@@ -280,6 +281,7 @@
     }
     viewing = true;
     $('share').hidden = true;
+    if (window.CCGithub) window.CCGithub.setUser(null);
     api.enterViewOnly(`Viewing ${r.json.student}'s files from ${r.json.className}. This is a read-only copy: you can run and edit it, but nothing here is saved.`);
     applying = true;
     try { api.setWorkspace(r.json.workspace); } finally { applying = false; }
