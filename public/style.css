@@ -206,3 +206,19 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ac); outlin
   .panel { height: 220px; }
 }
 @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2s; } .panel, .sidebar { transition: none; } }
+
+/* ---- Accounts ---- */
+.cloud-status { font: 500 11px var(--sans); color: var(--mu2); white-space: nowrap; }
+.cloud-status.ok { color: var(--ac2); }
+.cloud-status.err { color: var(--err, #e07a72); }
+.account-btn { max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
+.auth-dialog { margin: auto; width: min(380px, calc(100vw - 32px)); padding: 22px; background: var(--bg2); color: var(--fg); border: 1px solid var(--bd2); border-radius: 10px; box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5); }
+.auth-dialog::backdrop { background: rgba(0, 0, 0, 0.55); }
+.auth-dialog h2 { margin-bottom: 14px; font: 600 16px var(--sans); }
+.auth-dialog label { display: block; margin-bottom: 12px; color: var(--mu); font: 500 12px var(--sans); }
+.auth-dialog input { display: block; width: 100%; margin-top: 5px; padding: 8px 10px; background: var(--inp); color: var(--fg); border: 1px solid var(--bd2); border-radius: 5px; font: 13px var(--sans); }
+.auth-dialog input:focus { outline: 2px solid var(--ac); outline-offset: -1px; }
+.auth-note { margin: 10px 0 0; color: var(--mu); font: 12px/1.5 var(--sans); }
+.auth-error { margin: 0 0 10px; color: var(--err, #e07a72); font: 500 12px var(--sans); }
+.auth-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+@media (max-width: 760px) { .account-btn { max-width: 96px; } .cloud-status { display: none; } }

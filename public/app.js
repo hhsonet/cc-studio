@@ -199,6 +199,7 @@ let saveTimer = null;
 function flushSave() {
   clearTimeout(saveTimer);
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch { /* storage full or blocked */ }
+  if (window.CCAccount) window.CCAccount.changed(); // queue the cloud copy when signed in
 }
 function save() {
   clearTimeout(saveTimer);
@@ -469,6 +470,12 @@ async function initMonaco() {
       const md = models.get(path);
       if (md) { md.dispose(); models.delete(path); }
     },
+    /** Drop every model so the next show() rebuilds from state.files (after a cloud copy replaced them). */
+    reset() {
+      instance.setModel(null);
+      for (const md of models.values()) md.dispose();
+      models.clear();
+    },
   };
 }
 
@@ -499,6 +506,7 @@ function initFallback() {
   });
   return {
     show(path) { current = path; ta.value = state.files[path] ?? ''; },
+    reset() {},
     getValue: () => ta.value,
     focus: () => ta.focus(),
     reveal(line) {
@@ -1348,3 +1356,22 @@ setPhase('idle');
 resetLog();
 updateStatsBar();
 applyDiagnostics();
+
+// ---- Accounts and cloud save (public/account.js; stays hidden when the server has no database) ----
+
+if (window.CCAccount) {
+  window.CCAccount.init({
+    getWorkspace: () => ({ files: state.files, open: state.open, collapsed: state.collapsed }),
+    isDefault: () => JSON.stringify(state.files) === JSON.stringify(DEFAULT_FILES),
+    setWorkspace(ws) {
+      const files = cleanFiles(ws.files);
+      if (!Object.keys(files).length) return;
+      state.files = files;
+      state.open = files[ws.open] !== undefined ? ws.open : firstFile(files);
+      state.collapsed = ws.collapsed && typeof ws.collapsed === 'object' ? ws.collapsed : {};
+      if (editor) editor.reset();
+      openFile(state.open);
+      flushSave();
+    },
+  });
+}

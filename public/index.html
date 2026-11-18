@@ -18,6 +18,8 @@
       <span id="filename" class="crumb"></span>
       <span id="lang" class="chip"></span>
       <div class="grow"></div>
+      <span id="cloud-status" class="cloud-status" role="status" hidden></span>
+      <button id="account-btn" class="ghost account-btn" type="button" hidden>Log in</button>
       <button id="format" class="ghost" type="button" title="Format the open file (Shift+Alt+F)">Format</button>
       <button id="run" class="primary" type="button" title="Compile and run (Ctrl+Enter)">
         <span class="spinner" hidden></span>
@@ -147,9 +149,37 @@
     </footer>
   </div>
 
+  <dialog id="auth-dialog" class="auth-dialog" aria-labelledby="auth-title">
+    <form id="auth-form" method="dialog" novalidate>
+      <h2 id="auth-title">Log in</h2>
+      <label><span id="auth-email-label">Email or username</span>
+        <input id="auth-email" type="text" inputmode="email" autocomplete="username" required spellcheck="false" autocapitalize="off">
+      </label>
+      <label>Password
+        <input id="auth-password" type="password" autocomplete="current-password" required minlength="8" maxlength="200">
+      </label>
+      <p id="auth-hint" class="auth-note" hidden>At least 8 characters. Your files are saved to your account and follow you to any device.</p>
+      <p id="auth-error" class="auth-error" role="alert" hidden></p>
+      <div class="auth-actions">
+        <button type="button" class="ghost auth-close">Cancel</button>
+        <button id="auth-submit" type="submit" class="primary">Log in</button>
+      </div>
+      <p class="auth-note"><span id="auth-switch-text">New here?</span> <button id="auth-switch" type="button" class="linkbtn">Sign up</button></p>
+    </form>
+    <div id="auth-account" hidden>
+      <h2>Account</h2>
+      <p class="auth-note">Signed in as <strong id="auth-who"></strong>. Your files are saved to the cloud as you type.</p>
+      <div class="auth-actions">
+        <button type="button" class="ghost auth-close">Close</button>
+        <button id="auth-logout" type="button" class="primary">Log out</button>
+      </div>
+    </div>
+  </dialog>
+
   <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"></script>
   <script src="friendly.js"></script>
   <script src="format-config.js"></script>
+  <script src="account.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

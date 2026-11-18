@@ -8,15 +8,19 @@ const express = require('express');
 const helmet = require('helmet');
 const { createDockerRunner } = require('./lib/runner');
 const { attachInteractive } = require('./lib/interactive');
+const { createDb } = require('./lib/db');
+const { createAuthRouter } = require('./lib/auth');
 
 /**
  * Build the Express app: security headers plus the static page. All code execution
  * goes through the WebSocket endpoint attached in attachInteractive (lib/interactive.js).
  */
-function createApp({ runner, logger = console } = {}) {
+function createApp({ runner, db, logger = console } = {}) {
   const app = express();
   app.locals.runner = runner;
   app.disable('x-powered-by');
+  // Behind Caddy on the same host: believe X-Forwarded-For / -Proto from loopback only (needed for the client IP and Secure cookies).
+  app.set('trust proxy', process.env.TRUST_PROXY === 'false' ? false : 'loopback');
 
   // Monaco is loaded from jsDelivr and runs its language workers from blob: URLs,
   // so the CSP has to allow exactly those on top of Helmet's defaults.
@@ -48,6 +52,9 @@ function createApp({ runner, logger = console } = {}) {
     })
   );
 
+  // Accounts and cloud-saved files. Without a database the app still works, just without login.
+  if (db) app.use('/api', createAuthRouter({ db, logger }));
+
   // The formatter is a 2.5 MB file that never changes: let browsers keep it.
   app.use('/vendor', express.static(path.join(__dirname, 'public', 'vendor'), { maxAge: '7d' }));
   app.use(express.static(path.join(__dirname, 'public')));
@@ -62,12 +69,18 @@ function createApp({ runner, logger = console } = {}) {
 }
 
 if (require.main === module) {
+  main().catch((err) => { console.error('Failed to start:', err); process.exit(1); });
+}
+
+async function main() {
   const port = Number(process.env.PORT) || 3000;
   // Positive-number env var, or the default.
   const num = (name, fallback) => (Number(process.env[name]) > 0 ? Number(process.env[name]) : fallback);
   const limits = process.env.MAX_COMPILES ? { maxCompiles: num('MAX_COMPILES', undefined) } : {};
+  const db = process.env.DATABASE_URL ? await createDb(process.env.DATABASE_URL) : null;
+  console.log(db ? 'Accounts enabled (Postgres connected)' : 'DATABASE_URL not set: accounts and cloud save are disabled');
   const runner = createDockerRunner({ image: process.env.RUNNER_IMAGE || 'gcc:13', limits });
-  const server = http.createServer(createApp({ runner }));
+  const server = http.createServer(createApp({ runner, db }));
   attachInteractive(server, {
     runner,
     // Behind Caddy on the same host the real client IP is in X-Forwarded-For; only believe it
