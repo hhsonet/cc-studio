@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="dark light">
   <title>cc-studio</title>
   <link rel="stylesheet" href="fonts.css">
@@ -14,7 +14,7 @@
       <button id="toggle-side" class="sidebtn js-toggle-side" type="button" title="Toggle sidebar" aria-label="Toggle sidebar" aria-expanded="true">
         <span class="sideicon"><span></span></span>
       </button>
-      <div class="brand"><span class="logo">cc</span>cc-studio</div>
+      <div class="brand"><span class="logo">cc</span><span class="brand-name">cc-studio</span></div>
       <span id="filename" class="crumb"></span>
       <span id="lang" class="chip"></span>
       <div class="grow"></div>
@@ -28,11 +28,17 @@
         <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M8 11V3m0 0L4.5 6.5M8 3l3.5 3.5M3 13.5h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span class="label">Push</span>
       </button>
-      <button id="share" class="ghost" type="button" title="Send the open file to one of your classes" hidden>Share</button>
-      <button id="format" class="ghost" type="button" title="Format the open file (Shift+Alt+F)">Format</button>
+      <button id="share" class="ghost icon-btn" type="button" title="Send the open file to one of your classes" aria-label="Share with a class" hidden>
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M8 10V2.5m0 0L5 5.5m3-3 3 3M3 9v4.5h10V9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="label">Share</span>
+      </button>
+      <button id="format" class="ghost icon-btn" type="button" title="Format the open file (Shift+Alt+F)" aria-label="Format">
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M2.5 4h11M2.5 8h7M2.5 12h11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <span class="label">Format</span>
+      </button>
       <button id="run" class="primary" type="button" title="Compile and run (Ctrl+Enter)">
         <span class="spinner" hidden></span>
-        <span class="label">Compile ⏎</span>
+        <span class="label">Compile</span><span class="key" aria-hidden="true">⏎</span>
       </button>
     </header>
 

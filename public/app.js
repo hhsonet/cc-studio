@@ -93,6 +93,7 @@ const CONSOLE_COLORS = {
 };
 
 const INDENT_SIZES = [2, 4, 8];
+const PHONE = window.matchMedia('(max-width: 760px)'); // the layout where the sidebar is an overlay
 const FORMAT_STYLES = window.CCFormat.STYLES; // from format-config.js
 
 /** Editor indentation settings: auto indent on/off and the indent width (spaces). */
@@ -342,7 +343,11 @@ async function initMonaco() {
     autoIndent: state.indent.auto ? 'full' : 'none',
     renderLineHighlight: 'line',
     stickyScroll: { enabled: false },
+    // On a phone, wrap long lines instead of scrolling sideways, and keep the line-number gutter slim.
+    wordWrap: PHONE.matches ? 'on' : 'off',
+    lineNumbersMinChars: PHONE.matches ? 3 : 5,
   });
+  PHONE.addEventListener('change', () => instance.updateOptions({ wordWrap: PHONE.matches ? 'on' : 'off', lineNumbersMinChars: PHONE.matches ? 3 : 5 }));
   // Ctrl/Cmd+Enter inside the editor (Monaco swallows the key otherwise).
   instance.addCommand(m.KeyMod.CtrlCmd | m.KeyCode.Enter, () => runClicked());
   // Shift+Alt+F everywhere. (Monaco's own Format Document key is Ctrl+Shift+I on Linux, so bind ours too.)
@@ -1086,7 +1091,8 @@ function setPhase(p) {
   const btn = $('run');
   btn.disabled = false;
   btn.querySelector('.spinner').hidden = p === 'idle';
-  btn.querySelector('.label').textContent = { idle: 'Compile ⏎', compiling: 'Compiling…', running: 'Stop' }[p];
+  btn.querySelector('.label').textContent = { idle: 'Compile', compiling: 'Compiling…', running: 'Stop' }[p];
+  btn.querySelector('.key').hidden = p !== 'idle'; // the Enter hint only while it can be used
   btn.title = p === 'idle' ? 'Compile and run (Ctrl+Enter)' : 'Stop';
 }
 

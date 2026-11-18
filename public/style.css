@@ -21,7 +21,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ac); outlin
 [hidden] { display: none !important; }
 .grow { flex: 1; }
 
-.app { height: 100vh; height: 100dvh; display: flex; flex-direction: column; }
+.app { height: 100vh; height: 100dvh; display: flex; flex-direction: column; max-width: 100vw; overflow: hidden; padding-bottom: env(safe-area-inset-bottom); }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
 /* ---- top bar ---- */
 .topbar { display: flex; align-items: center; gap: 16px; padding: 0 16px; height: 52px; border-bottom: 1px solid var(--bd); flex: none; }
@@ -280,3 +281,31 @@ body.resizing { cursor: col-resize; user-select: none; }
 body.resizing .sidebar, body.resizing .panel { transition: none; }
 @media (max-width: 960px) { .resizer-panel { display: none; } } /* the panel sits under the editor here */
 @media (max-width: 760px) { #resize-side { display: none; } }   /* the sidebar is an overlay here */
+
+/* ---- Phones: a top bar that fits, bigger touch targets, no zoom-on-focus ---- */
+.key { margin-left: 2px; opacity: 0.75; font: 600 13px var(--sans); }
+@media (max-width: 760px) {
+  /* The whole bar has to fit in about 360px: only icons for the secondary buttons, no brand name, no key hint.
+     Wider than the screen makes the browser zoom the page out and push Compile off the edge. */
+  .topbar { gap: 8px; padding: 0 10px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+  .topbar::-webkit-scrollbar { display: none; }
+  .brand-name, .key { display: none; }
+  .brand { gap: 0; }
+  .primary { padding: 7px 14px; }
+  .icon-btn { padding: 6px 9px; }
+  .icon-btn svg { width: 16px; height: 16px; }
+  .chip { padding: 3px 6px; }
+  /* tap targets of about 36-40px, and no 300ms tap delay or double-tap zoom */
+  .ghost, .primary, .sidebtn { min-height: 36px; }
+  .sidebtn { min-width: 36px; }
+  button, .node, .ptab { touch-action: manipulation; }
+  .node { height: 38px; }
+  .ptab { padding: 0 14px; }
+  .panel { height: clamp(190px, 36dvh, 340px); }
+  /* 16px inputs: smaller text makes a phone zoom the page in when you tap the field */
+  .stdin-row input, .auth-dialog input, .auth-dialog select, #new-name { font-size: 16px; }
+  .stdin-row { height: 44px; }
+}
+@media (max-width: 520px) {
+  .chip { display: none; } /* the file's language is clear from its name in the sidebar */
+}
