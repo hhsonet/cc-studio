@@ -105,6 +105,25 @@ test('classes, teachers and students', { skip: !DB_URL && 'DATABASE_URL not set'
     assert.equal((await call('POST', `/api/classes/${klass.id}/assignments/${assignment.id}/start`, { overwrite: true }, stu.cookie)).status, 200);
   });
 
+  await t.test('teacher shares a single program from the editor', async () => {
+    const body = { path: 'demo/hello.c', content: '#include <stdio.h>\nint main(void){puts("hi");}', title: 'Hello demo' };
+    assert.equal((await call('POST', `/api/classes/${klass.id}/shares`, body, stu.cookie)).status, 403);
+    assert.equal((await call('POST', `/api/classes/${klass.id}/shares`, body, teacher2.cookie)).status, 404);
+    assert.equal((await call('POST', `/api/classes/${klass.id}/shares`, { ...body, path: '../x.c' }, teacher.cookie)).status, 400);
+    assert.equal((await call('POST', `/api/classes/${klass.id}/shares`, { ...body, content: '  ' }, teacher.cookie)).status, 400);
+    const a = await call('POST', `/api/classes/${klass.id}/shares`, body, teacher.cookie);
+    assert.equal(a.status, 201);
+    assert.equal(a.json.shared.folder, 'hello-demo');
+    const b = await call('POST', `/api/classes/${klass.id}/shares`, body, teacher.cookie); // same title again
+    assert.equal(b.json.shared.folder, 'hello-demo-2');
+    const list = (await call('GET', `/api/classes/${klass.id}`, undefined, stu.cookie)).json.class.assignments;
+    assert.equal(list.find((x) => x.id === a.json.shared.id).kind, 'shared');
+    assert.equal((await call('POST', `/api/classes/${klass.id}/assignments/${a.json.shared.id}/start`, {}, stu.cookie)).status, 200);
+    const ws = (await call('GET', '/api/workspace', undefined, stu.cookie)).json.workspace;
+    assert.equal(ws.files['hello-demo/hello.c'], body.content); // only the file name, not the teacher's folder
+    assert.equal(ws.open, 'hello-demo/hello.c');
+  });
+
   await t.test('teacher can read a roster student\'s code, nobody else can', async () => {
     const r = await call('GET', `/api/classes/${klass.id}/students/${stu.id}/workspace`, undefined, teacher.cookie);
     assert.equal(r.status, 200);

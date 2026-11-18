@@ -1365,6 +1365,8 @@ if (window.CCAccount) {
   window.CCAccount.init({
     getWorkspace: () => ({ files: state.files, open: state.open, collapsed: state.collapsed }),
     isDefault: () => JSON.stringify(state.files) === JSON.stringify(DEFAULT_FILES),
+    /** The open file, for sharing it with a class. */
+    getOpenFile: () => ({ path: state.open, content: state.files[state.open] ?? '' }),
     /** Show someone else's files in this tab without ever saving them (locally or to the cloud). */
     enterViewOnly(message) {
       viewOnly = true;

@@ -44,6 +44,7 @@
     $('user-name').textContent = user ? label : 'cc-studio';
     $('user-sub').textContent = user ? 'Signed in · Settings' : 'Settings';
     $('acct-section').hidden = false;
+    $('share').hidden = !(user && (user.role === 'teacher' || user.role === 'superadmin') && !viewing);
     $('acct-out').hidden = !!user;
     $('acct-in').hidden = !user;
     if (user) {
@@ -181,6 +182,50 @@
     }
   }
 
+  // ---- Teachers: send the open file to a class ----
+
+  async function openShare() {
+    const file = api.getOpenFile();
+    const sel = $('share-class');
+    $('share-error').hidden = true;
+    $('share-file').textContent = `File: ${file.path}`;
+    $('share-name').value = file.path.split('/').pop();
+    sel.replaceChildren();
+    const r = await call('GET', '/classes');
+    const classes = r.ok ? r.json.classes : [];
+    for (const c of classes) sel.append(new Option(c.name, c.id));
+    $('share-send').disabled = classes.length === 0;
+    if (!classes.length) {
+      $('share-error').textContent = 'You have no classes yet. Create one on the Classes page first.';
+      $('share-error').hidden = false;
+    } else {
+      const last = localStorage.getItem('cc-studio:share-class');
+      if (last && classes.some((c) => String(c.id) === last)) sel.value = last;
+    }
+    $('share-dialog').showModal();
+  }
+
+  async function sendShare(e) {
+    e.preventDefault();
+    const file = api.getOpenFile();
+    const btn = $('share-send');
+    btn.disabled = true;
+    $('share-error').hidden = true;
+    try {
+      const classId = $('share-class').value;
+      const r = await call('POST', `/classes/${classId}/shares`, { path: file.path, content: file.content, title: $('share-name').value });
+      if (!r.ok) { $('share-error').textContent = (r.json && r.json.error) || 'Could not share.'; $('share-error').hidden = false; return; }
+      try { localStorage.setItem('cc-studio:share-class', classId); } catch { /* storage blocked */ }
+      $('share-dialog').close();
+      setStatus(`Shared with ${r.json.shared.className}`, 'ok');
+    } catch {
+      $('share-error').textContent = 'Could not reach the server.';
+      $('share-error').hidden = false;
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
   async function logout() {
     clearTimeout(saveTimer);
     if (user) await pushNow(); // do not lose the last edits
@@ -198,6 +243,10 @@
     user = me.json && me.json.user;
     renderButton();
 
+    $('share').addEventListener('click', openShare);
+    $('share-cancel').addEventListener('click', () => $('share-dialog').close());
+    $('share-form').addEventListener('submit', sendShare);
+    $('share-dialog').addEventListener('mousedown', (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });
     $('menu-login').addEventListener('click', () => { closeMenu(); openDialog(); });
     $('menu-logout').addEventListener('click', () => { closeMenu(); logout(); });
     $('auth-form').addEventListener('submit', submit);
@@ -230,6 +279,7 @@
       return r.ok; // no files: still stay out of the way of the teacher's own work
     }
     viewing = true;
+    $('share').hidden = true;
     api.enterViewOnly(`Viewing ${r.json.student}'s files from ${r.json.className}. This is a read-only copy: you can run and edit it, but nothing here is saved.`);
     applying = true;
     try { api.setWorkspace(r.json.workspace); } finally { applying = false; }

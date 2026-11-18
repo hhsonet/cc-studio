@@ -120,9 +120,10 @@
     const ul = $('a-list');
     ul.replaceChildren();
     $('a-empty').hidden = c.assignments.length > 0;
-    $('a-empty').textContent = c.isTeacher ? 'No assignments yet.' : 'Your teacher has not posted any assignments yet.';
+    $('a-empty').textContent = c.isTeacher ? 'Nothing here yet.' : 'Your teacher has not shared anything yet.';
     for (const a of c.assignments) {
-      const meta = `${a.fileCount} file${a.fileCount === 1 ? '' : 's'} · ${fmtDate(a.createdAt)}`;
+      const shared = a.kind === 'shared';
+      const meta = `${shared ? 'Shared program' : `${a.fileCount} file${a.fileCount === 1 ? '' : 's'}`} · ${fmtDate(a.createdAt)}`;
       const li = el('li', null, el('span', { className: 'title', textContent: a.title }), el('span', { className: 'meta', textContent: meta }));
       if (c.isTeacher) {
         li.append(button('Delete', 'danger small', async () => {
@@ -131,7 +132,7 @@
           if (r.ok) showClass(c.id); else msg('d-msg', errText(r, 'Could not delete.'), 'err');
         }));
       } else {
-        li.append(button('Get starter code', 'primary small', () => startAssignment(c.id, a, false)));
+        li.append(button(shared ? 'Get code' : 'Get starter code', 'primary small', () => startAssignment(c.id, a, false)));
       }
       ul.append(li);
     }

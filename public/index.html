@@ -19,6 +19,7 @@
       <span id="lang" class="chip"></span>
       <div class="grow"></div>
       <span id="cloud-status" class="cloud-status" role="status" hidden></span>
+      <button id="share" class="ghost" type="button" title="Send the open file to one of your classes" hidden>Share</button>
       <button id="format" class="ghost" type="button" title="Format the open file (Shift+Alt+F)">Format</button>
       <button id="run" class="primary" type="button" title="Compile and run (Ctrl+Enter)">
         <span class="spinner" hidden></span>
@@ -163,6 +164,25 @@
       <span id="credit" class="credit"></span>
     </footer>
   </div>
+
+  <dialog id="share-dialog" class="auth-dialog" aria-labelledby="share-title">
+    <form id="share-form" novalidate>
+      <h2 id="share-title">Share with a class</h2>
+      <p id="share-file" class="auth-note"></p>
+      <label>Class
+        <select id="share-class"></select>
+      </label>
+      <label>Title
+        <input id="share-name" type="text" maxlength="60" autocomplete="off">
+      </label>
+      <p class="auth-note">Students see it in the class and can copy it into their own files. It sends the file as it is now.</p>
+      <p id="share-error" class="auth-error" role="alert" hidden></p>
+      <div class="auth-actions">
+        <button type="button" class="ghost" id="share-cancel">Cancel</button>
+        <button id="share-send" type="submit" class="primary">Share</button>
+      </div>
+    </form>
+  </dialog>
 
   <dialog id="auth-dialog" class="auth-dialog" aria-labelledby="auth-title">
     <form id="auth-form" method="dialog" novalidate>
