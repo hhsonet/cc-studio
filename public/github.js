@@ -87,30 +87,6 @@
 
   // ---- Pull: one click ----
 
-  /** Ask before GitHub's version replaces files the user changed. Resolves true to replace, false to keep (Esc and a click outside also keep). */
-  function confirmReplace(folder, files) {
-    return new Promise((resolve) => {
-      const dlg = $('gh-pull-dialog');
-      const MAX = 12;
-      $('gh-pull-folder').textContent = `${folder}/`;
-      const list = $('gh-pull-files');
-      list.replaceChildren();
-      for (const p of files.slice(0, MAX)) {
-        const li = document.createElement('li');
-        li.textContent = p;
-        list.append(li);
-      }
-      show('gh-pull-more', files.length > MAX ? `…and ${files.length - MAX} more` : '');
-      $('gh-pull-replace').textContent = files.length === 1 ? 'Replace 1 file' : `Replace ${files.length} files`;
-      let replace = false;
-      const finish = () => { dlg.removeEventListener('close', finish); resolve(replace); };
-      dlg.addEventListener('close', finish);
-      $('gh-pull-replace').onclick = () => { replace = true; dlg.close(); };
-      $('gh-pull-keep').onclick = () => dlg.close();
-      dlg.showModal();
-    });
-  }
-
   async function pull() {
     const btn = $('gh-pull-btn');
     if (btn.disabled || !(await ensureLinked())) return;
@@ -439,7 +415,6 @@
     $('gh-export-view').addEventListener('submit', push);
     for (const b of document.querySelectorAll('.gh-close')) b.addEventListener('click', () => $('gh-dialog').close());
     $('gh-dialog').addEventListener('mousedown', (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });
-    $('gh-pull-dialog').addEventListener('mousedown', (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });
   }
 
   window.CCGithub = { init, setUser, loadHistory };
