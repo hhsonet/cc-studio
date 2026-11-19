@@ -73,7 +73,15 @@ function createApp({ runner, db, github = {}, logger = console } = {}) {
 
   // The formatter is a 2.5 MB file that never changes: let browsers keep it.
   app.use('/vendor', express.static(path.join(__dirname, 'public', 'vendor'), { maxAge: '7d' }));
-  app.use(express.static(path.join(__dirname, 'public')));
+  // Clean URLs: /profile instead of /profile.html. Old .html links redirect (query kept). Only plain top-level
+  // names are matched, so a crafted path like //evil.com.html can never become an open redirect.
+  app.use((req, res, next) => {
+    const m = /^\/([A-Za-z0-9_-]+)\.html$/.exec(req.path);
+    if ((req.method !== 'GET' && req.method !== 'HEAD') || !m) return next();
+    const q = req.originalUrl.indexOf('?');
+    res.redirect(301, (m[1] === 'index' ? '/' : `/${m[1]}`) + (q === -1 ? '' : req.originalUrl.slice(q)));
+  });
+  app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
 
   // eslint-disable-next-line no-unused-vars
   app.use((err, req, res, next) => {

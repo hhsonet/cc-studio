@@ -201,7 +201,7 @@
     el.replaceChildren(text);
     if (profile) {
       const a = document.createElement('a');
-      a.href = '/profile.html#github';
+      a.href = '/profile#github';
       a.textContent = 'Open profile';
       el.append(' ', a);
     }

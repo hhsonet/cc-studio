@@ -365,7 +365,7 @@
     }
     me = user;
     $('content').hidden = false;
-    // Arriving from the search box on another page: /admin.html?q=ada#users
+    // Arriving from the search box on another page: /admin?q=ada#users
     const q = new URLSearchParams(window.location.search).get('q');
     if (q) { $('u-q').value = q; window.history.replaceState(null, '', `${window.location.pathname}${window.location.hash}`); }
     showTab(window.location.hash.slice(1));

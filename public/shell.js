@@ -24,15 +24,15 @@
 
   // [key, label, icon, address, id of the count badge]
   const ADMIN_NAV = [
-    ['overview', 'Overview', 'home', '/admin.html#overview'],
-    ['users', 'Users', 'users', '/admin.html#users', 'n-users'],
-    ['admin-classes', 'All classes', 'book', '/admin.html#classes', 'n-classes'],
-    ['github', 'GitHub settings', 'github', '/admin.html#github'],
+    ['overview', 'Overview', 'home', '/admin#overview'],
+    ['users', 'Users', 'users', '/admin#users', 'n-users'],
+    ['admin-classes', 'All classes', 'book', '/admin#classes', 'n-classes'],
+    ['github', 'GitHub settings', 'github', '/admin#github'],
   ];
   const USER_NAV = [
     ['editor', 'Editor', 'code', '/'],
-    ['classes', 'Classes', 'list', '/classes.html'],
-    ['profile', 'Profile', 'user', '/profile.html'],
+    ['classes', 'Classes', 'list', '/classes'],
+    ['profile', 'Profile', 'user', '/profile'],
   ];
   const PAGE_TITLES = { classes: 'Classes', profile: 'Profile' };
   const ROLE_NAMES = { student: 'Student', teacher: 'Teacher', superadmin: 'Super admin' };
@@ -131,7 +131,7 @@
     refs.crumbs.replaceChildren(home);
     list.forEach((p, i) => {
       refs.crumbs.append(make('span', { className: 'sep', textContent: '/' }));
-      refs.crumbs.append(i === list.length - 1 ? make('span', { className: 'here', textContent: p }) : make('a', { href: p === 'Admin' ? '/admin.html#overview' : '#', textContent: p }));
+      refs.crumbs.append(i === list.length - 1 ? make('span', { className: 'here', textContent: p }) : make('a', { href: p === 'Admin' ? '/admin#overview' : '#', textContent: p }));
     });
   }
 
@@ -158,7 +158,7 @@
         make('div', { className: 'menu-head' },
           make('span', { className: 'avatar big', textContent: initials(user) }),
           make('span', { className: 'who' }, make('span', { className: 'name', textContent: label(user) }), make('span', { className: 'sub', textContent: user.email || ROLE_NAMES[user.role] || '' }))),
-        item('/profile.html', 'user', 'View profile'),
+        item('/profile', 'user', 'View profile'),
         item('/', 'code', 'Open editor'));
     } else {
       refs.menu.append(item('/', 'user', 'Log in from the editor'));
@@ -209,7 +209,7 @@
     if (e.key !== 'Enter') return;
     const q = refs.searchInput.value.trim();
     if (current === 'admin') window.dispatchEvent(new CustomEvent('shell:search', { detail: q }));
-    else window.location.href = `/admin.html?q=${encodeURIComponent(q)}#users`;
+    else window.location.href = `/admin?q=${encodeURIComponent(q)}#users`;
   });
   document.addEventListener('keydown', (e) => {
     const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement && document.activeElement.tagName);

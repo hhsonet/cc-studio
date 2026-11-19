@@ -428,7 +428,7 @@ test('GitHub connect and export', { skip: !DB_URL && 'DATABASE_URL not set' }, a
     gh.webScope = 'public_repo';
     const both = `${user.cookie}; ${go.cookie}`;
     const back = await hop(web.base, `/api/github/oauth/callback?code=good-code&state=${state}`, both);
-    assert.equal(back.location, '/profile.html#github');
+    assert.equal(back.location, '/profile#github');
     const st = (await call(web.base, 'GET', '/api/github/status', undefined, user.cookie)).json;
     assert.deepEqual([st.connected, st.login], [true, 'connector']);
     assert.equal((await db.query("SELECT github_id FROM users WHERE email = 'webconnect@example.com'")).rows[0].github_id, '9100');
@@ -438,7 +438,7 @@ test('GitHub connect and export', { skip: !DB_URL && 'DATABASE_URL not set' }, a
     const go2 = await hop(web.base, '/api/github/oauth/connect', other.cookie);
     const s2 = new URL(go2.location).searchParams.get('state');
     const refused = await hop(web.base, `/api/github/oauth/callback?code=good-code&state=${s2}`, `${other.cookie}; ${go2.cookie}`);
-    assert.equal(refused.location, '/profile.html?auth=github_taken#github');
+    assert.equal(refused.location, '/profile?auth=github_taken#github');
     gh.webScope = '';
   });
 });
