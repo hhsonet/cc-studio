@@ -64,7 +64,7 @@ function createApp({ runner, db, github = {}, logger = console } = {}) {
           scriptSrc: ["'self'", "'wasm-unsafe-eval'", 'https://cdn.jsdelivr.net'],
           styleSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net'],
           fontSrc: ["'self'", 'https://cdn.jsdelivr.net', 'data:'],
-          imgSrc: ["'self'", 'data:'],
+          imgSrc: ["'self'", 'data:', 'https://avatars.githubusercontent.com'], // GitHub profile pictures
           workerSrc: ["'self'", 'blob:'],
           // 'self' alone does not reliably cover ws:// in every browser, so name this host's
           // WebSocket origins explicitly (Host is validated so it can't inject CSP tokens).

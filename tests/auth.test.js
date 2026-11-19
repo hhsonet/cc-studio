@@ -7,7 +7,7 @@ const http = require('node:http');
 const { Client } = require('pg');
 const { createDb } = require('../lib/db');
 const { createApp } = require('../server');
-const { hashPassword, verifyPassword, cleanWorkspace, createLimiter, checkProfile } = require('../lib/auth');
+const { hashPassword, verifyPassword, cleanWorkspace, createLimiter, checkProfile, avatarFor, publicUser } = require('../lib/auth');
 
 test('passwords hash with a random salt and verify', async () => {
   const a = await hashPassword('correct horse');
@@ -74,6 +74,14 @@ test('accounts API against Postgres', { skip: !DB_URL && 'DATABASE_URL not set' 
     assert.equal((await call('POST', '/api/signup', { email: 'a@b.co', password: 'short', fullName: 'Test User' })).status, 400);
   });
 
+  await t.test('GitHub profile picture: built only from a numeric GitHub id', () => {
+    assert.equal(avatarFor('583231'), 'https://avatars.githubusercontent.com/u/583231?s=96');
+    assert.equal(avatarFor(583231), 'https://avatars.githubusercontent.com/u/583231?s=96'); // pg may hand back a number or a string
+    for (const bad of [null, undefined, '', 'octocat', '12/../x', '1?s=9999&x=<', '1 2']) assert.equal(avatarFor(bad), null, String(bad));
+    assert.equal(publicUser({ id: 1, github_id: '42' }).avatarUrl, 'https://avatars.githubusercontent.com/u/42?s=96');
+    assert.equal(publicUser({ id: 1 }).avatarUrl, null); // not tied to GitHub: initials stay
+  });
+
   await t.test('sign-up details: a full name is required, the student id is optional and checked', () => {
     const bad = (body) => assert.ok(checkProfile(body).error, JSON.stringify(body));
     bad({});
@@ -91,6 +99,7 @@ test('accounts API against Postgres', { skip: !DB_URL && 'DATABASE_URL not set' 
     assert.deepEqual(checkProfile({ fullName: 'Zoë Müller-Ñ', studentId: 'ÄB-12' }), { fullName: 'Zoë Müller-Ñ', studentId: 'ÄB-12' }); // not just ASCII
   });
 
+  let graceCookie; // a second account, made in the next test (sign-ups are rate limited, so tests share accounts)
   await t.test('signup over HTTP: a name is required, name and id come back and persist', async () => {
     const ok = { email: 'name-test@example.com', password: 'password-123' };
     assert.equal((await call('POST', '/api/signup', ok)).status, 400); // no name
@@ -102,6 +111,7 @@ test('accounts API against Postgres', { skip: !DB_URL && 'DATABASE_URL not set' 
     const noId = await call('POST', '/api/signup', { email: 'no-id@example.com', password: 'password-123', fullName: 'Grace Hopper' });
     assert.equal(noId.status, 201);
     assert.equal(noId.json.user.studentId, null);
+    graceCookie = noId.cookie;
     const login = await call('POST', '/api/login', { email: 'no-id@example.com', password: 'password-123' });
     assert.equal(login.json.user.fullName, 'Grace Hopper');
   });
@@ -116,6 +126,34 @@ test('accounts API against Postgres', { skip: !DB_URL && 'DATABASE_URL not set' 
     cookie = r.cookie;
     assert.equal((await call('GET', '/api/me', undefined, cookie)).json.user.email, 'ada@example.com');
     assert.equal((await call('GET', '/api/me')).json.user, null);
+  });
+
+  await t.test('edit details: name and student id change, an email can be added once, never changed', async () => {
+    const put = (body, c = cookie) => call('PUT', '/api/profile', body, c);
+    assert.equal((await call('PUT', '/api/profile', { fullName: 'Ada Lovelace' })).status, 401); // signed out
+    assert.equal((await put({ fullName: '' })).status, 400); // a name is always needed
+    assert.equal((await put({ fullName: 'Ada Lovelace', studentId: 'bad id!' })).status, 400);
+
+    const ok = await put({ fullName: '  Ada   King ', studentId: ' S-42 ' });
+    assert.equal(ok.status, 200);
+    assert.deepEqual([ok.json.user.fullName, ok.json.user.studentId, ok.json.user.email], ['Ada King', 'S-42', 'ada@example.com']);
+    assert.equal((await call('GET', '/api/me', undefined, cookie)).json.user.fullName, 'Ada King'); // persisted
+
+    assert.equal((await put({ fullName: 'Ada King', studentId: '' })).json.user.studentId, null); // clearing works
+    assert.equal((await put({ fullName: 'Ada King', email: 'ADA@example.com' })).status, 200); // same email, other case: nothing to change
+    const change = await put({ fullName: 'Ada King', email: 'other@example.com' });
+    assert.equal(change.status, 400); // an existing email is not editable here
+    assert.equal((await call('GET', '/api/me', undefined, cookie)).json.user.email, 'ada@example.com');
+
+    // An account with no email (a GitHub sign-up, for instance) can add one.
+    await db.query("UPDATE users SET email = NULL WHERE lower(email) = 'no-id@example.com'");
+    assert.equal((await put({ fullName: 'Grace Hopper', email: 'not-an-email' }, graceCookie)).status, 400);
+    assert.equal((await put({ fullName: 'Grace Hopper', email: 'ada@example.com' }, graceCookie)).status, 409); // taken by Ada
+    const added = await put({ fullName: 'Grace Hopper', email: ' Grace@Example.com ' }, graceCookie);
+    assert.equal(added.status, 200);
+    assert.equal(added.json.user.email, 'grace@example.com'); // lower-cased, trimmed
+    assert.equal((await call('POST', '/api/login', { email: 'grace@example.com', password: 'password-123' })).status, 200); // and usable to sign in
+    assert.equal((await put({ fullName: 'Grace Hopper', email: 'grace2@example.com' }, graceCookie)).status, 400); // now locked
   });
 
   await t.test('duplicate email (any case) is rejected', async () => {

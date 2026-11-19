@@ -350,3 +350,7 @@ body.resizing .sidebar, body.resizing .panel { transition: none; }
 @media (prefers-reduced-motion: reduce) { .gh-progress span { width: 100%; animation: none; opacity: .55; } }
 
 .auth-opt { font-weight: 400; color: var(--mu2); }
+
+/* GitHub profile picture inside an avatar circle (public/avatar.js). The initials sit underneath until it loads. */
+.avatar { position: relative; overflow: hidden; }
+.avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }

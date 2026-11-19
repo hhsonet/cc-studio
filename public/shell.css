@@ -70,3 +70,7 @@ button.avatar:hover { filter: brightness(1.1); }
   .content { padding: 20px 14px 48px; }
   .crumbs a:first-child, .crumbs .sep:first-of-type { display: none; }
 }
+
+/* GitHub profile picture inside an avatar circle (public/avatar.js). The initials sit underneath until it loads. */
+.avatar { position: relative; overflow: hidden; }
+.avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }

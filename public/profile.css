@@ -41,6 +41,8 @@ h2 { margin: 0 0 14px; font: 600 15px var(--sans); }
 label { display: block; margin-bottom: 12px; color: var(--mu); font: 500 12px var(--sans); }
 input { display: block; width: 100%; margin-top: 5px; padding: 8px 10px; background: var(--inp); color: var(--fg); border: 1px solid var(--bd2); border-radius: 5px; font: 14px var(--sans); }
 input:focus { outline: 2px solid var(--ac); outline-offset: -1px; }
+input[readonly] { color: var(--mu); cursor: default; }
+.opt { font-weight: 400; color: var(--mu2); }
 .actions { display: flex; justify-content: flex-end; }
 .btn { display: inline-block; padding: 7px 16px; background: none; color: var(--fg); border: 1px solid var(--bd2); border-radius: 5px; font: 500 13px var(--sans); text-decoration: none; cursor: pointer; }
 .btn:hover:not(:disabled) { border-color: var(--ac); color: var(--ac2); }

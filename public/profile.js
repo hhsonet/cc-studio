@@ -29,16 +29,51 @@
   // ---- Page ----
   let me = null;
 
+  // ---- Your details: full name, student ID, and an email when the account has none ----
+  function fillDetails(user) {
+    $('d-name').value = user.fullName || '';
+    $('d-sid').value = user.studentId || '';
+    const email = $('d-email');
+    email.value = user.email || '';
+    email.readOnly = Boolean(user.email); // once set it is the sign-in name and cannot be changed here
+    const note = $('d-email-note');
+    note.hidden = false;
+    note.textContent = user.email
+      ? 'This is how you sign in, so it cannot be changed here.'
+      : (user.hasPassword === false ? 'You sign in with GitHub. Adding an email is optional.' : 'Add an email address so you can sign in with it too.');
+  }
+
+  $('details-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = $('d-name').value.trim();
+    if (name.length < 2) return message($('d-msg'), 'Enter your full name.', 'err');
+    const btn = $('d-save');
+    btn.disabled = true;
+    message($('d-msg'), '');
+    try {
+      const r = await call('PUT', '/profile', { fullName: name, studentId: $('d-sid').value, email: $('d-email').value });
+      if (!r.ok) { message($('d-msg'), (r.json && r.json.error) || 'Could not save your details.', 'err'); return; }
+      me = r.json.user;
+      showProfile(me, lastWorkspace.workspace, lastWorkspace.updatedAt);
+      message($('d-msg'), 'Saved.', 'ok');
+    } catch {
+      message($('d-msg'), 'Could not reach the server.', 'err');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  let lastWorkspace = { workspace: null, updatedAt: null };
+
   function showProfile(user, workspace, updatedAt) {
+    lastWorkspace = { workspace, updatedAt };
     const label = user.username || user.email;
-    $('avatar').textContent = label.charAt(0).toUpperCase();
+    window.CCAvatar.set($('avatar'), user, label.charAt(0).toUpperCase());
     $('name').textContent = label;
     $('role').hidden = !ROLES[user.role];
     $('role').textContent = ROLES[user.role] || '';
-    $('f-fullname').textContent = user.fullName || '—';
-    $('f-studentid').textContent = user.studentId || '—';
+    fillDetails(user);
     $('f-username').textContent = user.username || '—';
-    $('f-email').textContent = user.email || '—';
     $('f-since').textContent = fmtDate(user.createdAt);
     const count = workspace ? Object.keys(workspace.files || {}).length : 0;
     $('f-files').textContent = workspace ? `${count} file${count === 1 ? '' : 's'}` : 'Nothing saved yet';

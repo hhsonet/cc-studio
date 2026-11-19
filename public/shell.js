@@ -117,6 +117,7 @@
 
   // ---- What the shell shows for this person ----
   const initials = (u) => (u.username || u.email || '?').replace(/[^A-Za-z0-9]/g, '').slice(0, 2).toUpperCase() || '?';
+  const avatarEl = (cls, u) => { const s = make('span', { className: cls }); window.CCAvatar.set(s, u, initials(u)); return s; };
   const label = (u) => u.username || u.email;
 
   function setActive(key) {
@@ -156,7 +157,7 @@
     if (user) {
       refs.menu.append(
         make('div', { className: 'menu-head' },
-          make('span', { className: 'avatar big', textContent: initials(user) }),
+          avatarEl('avatar big', user),
           make('span', { className: 'who' }, make('span', { className: 'name', textContent: label(user) }), make('span', { className: 'sub', textContent: user.email || ROLE_NAMES[user.role] || '' }))),
         item('/profile', 'user', 'View profile'),
         item('/', 'code', 'Open editor'));
@@ -191,10 +192,10 @@
   }
 
   function renderUser() {
-    refs.avatarBtn.textContent = user ? initials(user) : '?';
+    window.CCAvatar.set(refs.avatarBtn, user, user ? initials(user) : '?');
     refs.foot.replaceChildren();
     if (user) {
-      refs.foot.append(make('span', { className: 'avatar sm', textContent: initials(user) }),
+      refs.foot.append(avatarEl('avatar sm', user),
         make('span', { className: 'who' }, make('span', { className: 'name', textContent: label(user) }), make('span', { className: 'sub', textContent: ROLE_NAMES[user.role] || '' })));
     } else {
       refs.foot.append(make('span', { className: 'who' }, make('span', { className: 'sub', textContent: 'Not logged in' })), make('a', { href: '/', textContent: 'Log in' }));

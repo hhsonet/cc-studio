@@ -43,7 +43,7 @@
   /** The sidebar footer (avatar, name) and the account section at the top of the settings menu. */
   function renderButton() {
     const label = user ? (user.username || user.email) : '';
-    $('user-avatar').textContent = user ? label.charAt(0).toUpperCase() : 'cc';
+    window.CCAvatar.set($('user-avatar'), user, user ? label.charAt(0).toUpperCase() : 'cc');
     $('user-name').textContent = user ? label : 'cc-studio';
     $('user-sub').textContent = user ? 'Signed in · Settings' : 'Settings';
     $('acct-section').hidden = false;

@@ -29,13 +29,28 @@
         <button id="logout" class="btn" type="button">Log out</button>
       </section>
 
+      <section id="details-card" class="card">
+        <h2>Your details</h2>
+        <form id="details-form" novalidate>
+          <label>Full name
+            <input id="d-name" type="text" autocomplete="name" maxlength="80" required spellcheck="false">
+          </label>
+          <label>Student ID <span class="opt">(optional)</span>
+            <input id="d-sid" type="text" autocomplete="off" maxlength="32" spellcheck="false" autocapitalize="off">
+          </label>
+          <label>Email
+            <input id="d-email" type="email" autocomplete="email" maxlength="254" spellcheck="false" autocapitalize="off" placeholder="you@example.com">
+          </label>
+          <p id="d-email-note" class="muted small" hidden></p>
+          <p id="d-msg" class="msg" role="status" hidden></p>
+          <div class="actions"><button id="d-save" class="btn primary" type="submit">Save details</button></div>
+        </form>
+      </section>
+
       <section class="card">
         <h2>Account</h2>
         <dl class="facts">
-          <div><dt>Full name</dt><dd id="f-fullname"></dd></div>
-          <div><dt>Student ID</dt><dd id="f-studentid"></dd></div>
           <div><dt>Username</dt><dd id="f-username"></dd></div>
-          <div><dt>Email</dt><dd id="f-email"></dd></div>
           <div><dt>Member since</dt><dd id="f-since"></dd></div>
           <div><dt>Cloud files</dt><dd id="f-files"></dd></div>
           <div><dt>Last saved</dt><dd id="f-saved"></dd></div>
@@ -101,6 +116,7 @@
     </div>
   </main>
   <script src="theme.js"></script>
+  <script src="avatar.js"></script>
   <script src="shell.js"></script>
   <script src="profile.js"></script>
 </body>
