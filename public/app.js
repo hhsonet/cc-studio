@@ -1403,7 +1403,13 @@ if (window.CCGithub) {
       for (const [path, text] of Object.entries(files)) state.files[`${folder}/${path}`] = text;
       const mine = Object.keys(files).sort();
       if (!state.open.startsWith(`${folder}/`) || state.files[state.open] === undefined) state.open = `${folder}/${mine.find((p) => /(^|\/)main\.(c|cpp)$/.test(p)) || mine[0]}`;
-      state.collapsed[folder] = false; // tree keys are folder paths without a trailing slash
+      // Tree keys are folder paths without a trailing slash. Open the repository folder and every subfolder that
+      // received a file, so the pulled files are visible instead of hiding inside a collapsed folder.
+      state.collapsed[folder] = false;
+      for (const path of Object.keys(files)) {
+        const parts = `${folder}/${path}`.split('/');
+        for (let i = 2; i < parts.length; i++) state.collapsed[parts.slice(0, i).join('/')] = false;
+      }
       if (editor) editor.reset();
       openFile(state.open);
       flushSave();

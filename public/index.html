@@ -211,6 +211,8 @@
         <input id="gh-message" type="text" maxlength="200" autocomplete="off" placeholder="Update from cc-studio">
       </label>
       <p class="auth-note">Adds one commit with these files. Other files in the repository stay as they are.</p>
+      <div id="gh-progress" class="gh-progress" role="progressbar" aria-label="Pushing to GitHub" hidden><span></span></div>
+      <p id="gh-progress-text" class="auth-note gh-progress-text" role="status" hidden></p>
       <p id="gh-error" class="auth-error" role="alert" hidden></p>
       <p id="gh-result" class="auth-ok" role="status" hidden></p>
       <div class="auth-actions">
@@ -218,6 +220,18 @@
         <button id="gh-export" type="submit" class="primary">Push</button>
       </div>
     </form>
+  </dialog>
+
+  <dialog id="gh-pull-dialog" class="auth-dialog" aria-labelledby="gh-pull-title" aria-describedby="gh-pull-text">
+    <h2 id="gh-pull-title">Replace your changes?</h2>
+    <p id="gh-pull-text" class="auth-note">These files in <strong id="gh-pull-folder"></strong> differ from GitHub. Pulling replaces them with GitHub's version. Your other files are kept.</p>
+    <ul id="gh-pull-files" class="gh-pull-files"></ul>
+    <p id="gh-pull-more" class="auth-note" hidden></p>
+    <p class="auth-note">To keep your version, choose Keep mine and Push it first.</p>
+    <div class="auth-actions">
+      <button id="gh-pull-keep" type="button" class="ghost" autofocus>Keep mine</button>
+      <button id="gh-pull-replace" type="button" class="primary">Replace</button>
+    </div>
   </dialog>
 
   <dialog id="share-dialog" class="auth-dialog" aria-labelledby="share-title">
@@ -242,6 +256,12 @@
   <dialog id="auth-dialog" class="auth-dialog" aria-labelledby="auth-title">
     <form id="auth-form" method="dialog" novalidate>
       <h2 id="auth-title">Log in</h2>
+      <label id="auth-name-row" hidden>Full name
+        <input id="auth-name" type="text" autocomplete="name" maxlength="80" spellcheck="false" placeholder="e.g. Ada Lovelace">
+      </label>
+      <label id="auth-sid-row" hidden>Student ID <span class="auth-opt">(optional)</span>
+        <input id="auth-sid" type="text" autocomplete="off" maxlength="32" spellcheck="false" autocapitalize="off" placeholder="Leave empty if you don't have one">
+      </label>
       <label><span id="auth-email-label">Email or username</span>
         <input id="auth-email" type="text" inputmode="email" autocomplete="username" required spellcheck="false" autocapitalize="off">
       </label>

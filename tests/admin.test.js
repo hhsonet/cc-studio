@@ -32,8 +32,8 @@ test('admin dashboard API', { skip: !DB_URL && 'DATABASE_URL not set' }, async (
   await db.query("INSERT INTO users (username, password_hash, role) VALUES ('boss2', $1, 'superadmin')", [await hashPassword('boss-password-2')]);
   await db.query("INSERT INTO users (username, password_hash, github_id) VALUES ('octocat', 'github-only', 555)");
   const boss = (await call('POST', '/api/login', { email: 'boss', password: 'boss-password-1' })).cookie;
-  const ada = await call('POST', '/api/signup', { email: 'ada@example.com', password: 'password-123' });
-  const bob = await call('POST', '/api/signup', { email: 'bob_50%@example.com', password: 'password-123' });
+  const ada = await call('POST', '/api/signup', { email: 'ada@example.com', password: 'password-123', fullName: 'Test User' });
+  const bob = await call('POST', '/api/signup', { email: 'bob_50%@example.com', password: 'password-123', fullName: 'Test User' });
   const adaId = ada.json.user.id;
   const bobId = bob.json.user.id;
   await db.query("UPDATE users SET role = 'teacher' WHERE id = $1", [adaId]);

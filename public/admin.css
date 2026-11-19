@@ -92,3 +92,5 @@ td select { margin: 0; padding: 4px 8px; font-size: 13px; width: auto; }
   .cell { border-left: 0; border-top: 1px solid var(--bd); }
   .cell:first-child { border-top: 0; }
 }
+
+td.user .sid { margin-left: 6px; color: var(--mu2); font: 11px var(--mono); }

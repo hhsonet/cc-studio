@@ -49,7 +49,7 @@ test('admin settings: save GitHub app values at run time', { skip: !DB_URL && 'D
   };
   await db.query("INSERT INTO users (username, password_hash, role) VALUES ('boss', $1, 'superadmin')", [await hashPassword('boss-password-1')]);
   const boss = (await call(app.base, 'POST', '/api/login', { email: 'boss', password: 'boss-password-1' })).cookie;
-  const student = (await call(app.base, 'POST', '/api/signup', { email: 's@example.com', password: 'password-123' })).cookie;
+  const student = (await call(app.base, 'POST', '/api/signup', { email: 's@example.com', password: 'password-123', fullName: 'Test User' })).cookie;
   const bossNoKey = (await call(noKey.base, 'POST', '/api/login', { email: 'boss', password: 'boss-password-1' })).cookie;
   const SECRET = 'a1b2c3d4e5f60718293a4b5c6d7e8f9012345678';
   const settings = (method, body, cookie = boss, base = app.base, path = '') => call(base, method, `/api/admin/settings/github${path}`, body, cookie);

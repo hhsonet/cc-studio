@@ -188,8 +188,8 @@ Run it again for the same username to reset that account's password.
 Link one repository to your profile, then push and pull it from the editor.
 
 - **Pull** (one click in the top bar) brings the repository's source, header, text and Markdown files into a
-  folder with the repository's name. Files with the same name are replaced (you are asked first if yours differ); files
-  that only exist in cc-studio are kept.
+  folder with the repository's name. Files with the same name are replaced by the repository's version, without asking (the Console lists
+  each file that was overwritten); files that only exist in cc-studio are kept.
 - **Push** commits that folder to the repository's default branch as one commit, with your message. Only the
   repository's own folder is ever pushed.
 - The **Git** tab next to Console lists the repository's last 20 commits, and every push or pull also writes

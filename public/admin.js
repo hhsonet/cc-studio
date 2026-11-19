@@ -56,7 +56,7 @@
   const fmtDate = (v) => (v ? new Date(v).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '—');
   const fmtDateTime = (v) => (v ? new Date(v).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '—');
   const fmtBytes = (n) => (n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : n >= 1024 ? `${Math.round(n / 1024)} KB` : `${n} B`);
-  const who = (u) => u.username || u.email;
+  const who = (u) => u.fullName || u.username || u.email;
   const initials = (u) => who(u).replace(/[^A-Za-z0-9]/g, '').slice(0, 2).toUpperCase() || '?';
   const ROLE_NAMES = { student: 'Student', teacher: 'Teacher', superadmin: 'Super admin' };
   function el(tag, props, ...kids) {
@@ -208,7 +208,7 @@
           }));
       }
       body.append(el('tr', null,
-        el('td', { className: 'user', textContent: isMe ? `${who(u)} (you)` : who(u) }),
+        el('td', { className: 'user' }, isMe ? `${who(u)} (you)` : who(u), u.studentId ? el('span', { className: 'sid', textContent: u.studentId }) : null),
         roleCell,
         el('td', { textContent: signIn }),
         el('td', { textContent: fmtDate(u.createdAt) }),

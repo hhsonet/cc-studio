@@ -35,6 +35,8 @@
     $('name').textContent = label;
     $('role').hidden = !ROLES[user.role];
     $('role').textContent = ROLES[user.role] || '';
+    $('f-fullname').textContent = user.fullName || '—';
+    $('f-studentid').textContent = user.studentId || '—';
     $('f-username').textContent = user.username || '—';
     $('f-email').textContent = user.email || '—';
     $('f-since').textContent = fmtDate(user.createdAt);

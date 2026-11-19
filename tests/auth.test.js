@@ -7,7 +7,7 @@ const http = require('node:http');
 const { Client } = require('pg');
 const { createDb } = require('../lib/db');
 const { createApp } = require('../server');
-const { hashPassword, verifyPassword, cleanWorkspace, createLimiter } = require('../lib/auth');
+const { hashPassword, verifyPassword, cleanWorkspace, createLimiter, checkProfile } = require('../lib/auth');
 
 test('passwords hash with a random salt and verify', async () => {
   const a = await hashPassword('correct horse');
@@ -70,13 +70,45 @@ test('accounts API against Postgres', { skip: !DB_URL && 'DATABASE_URL not set' 
   };
 
   await t.test('signup validates input', async () => {
-    assert.equal((await call('POST', '/api/signup', { email: 'nope', password: 'longenough' })).status, 400);
-    assert.equal((await call('POST', '/api/signup', { email: 'a@b.co', password: 'short' })).status, 400);
+    assert.equal((await call('POST', '/api/signup', { email: 'nope', password: 'longenough', fullName: 'Test User' })).status, 400);
+    assert.equal((await call('POST', '/api/signup', { email: 'a@b.co', password: 'short', fullName: 'Test User' })).status, 400);
+  });
+
+  await t.test('sign-up details: a full name is required, the student id is optional and checked', () => {
+    const bad = (body) => assert.ok(checkProfile(body).error, JSON.stringify(body));
+    bad({});
+    bad({ fullName: '   ' });
+    bad({ fullName: 'A' }); // too short
+    bad({ fullName: 'x'.repeat(81) });
+    bad({ fullName: 'Ada <b>' }); // no markup characters
+    bad({ fullName: 'Ada\u0000Lovelace' });
+    bad({ fullName: ['Ada'] }); // wrong type
+    bad({ fullName: 'Ada Lovelace', studentId: 'has space!' });
+    bad({ fullName: 'Ada Lovelace', studentId: 'x'.repeat(33) });
+    assert.deepEqual(checkProfile({ fullName: '  Ada   Lovelace ', studentId: ' 2026-CSE/042 ' }), { fullName: 'Ada Lovelace', studentId: '2026-CSE/042' }); // trimmed, inner spaces collapsed
+    assert.deepEqual(checkProfile({ fullName: 'Grace Hopper', studentId: '  ' }), { fullName: 'Grace Hopper', studentId: null }); // empty: nothing stored
+    assert.deepEqual(checkProfile({ fullName: 'Grace Hopper' }), { fullName: 'Grace Hopper', studentId: null });
+    assert.deepEqual(checkProfile({ fullName: 'Zoë Müller-Ñ', studentId: 'ÄB-12' }), { fullName: 'Zoë Müller-Ñ', studentId: 'ÄB-12' }); // not just ASCII
+  });
+
+  await t.test('signup over HTTP: a name is required, name and id come back and persist', async () => {
+    const ok = { email: 'name-test@example.com', password: 'password-123' };
+    assert.equal((await call('POST', '/api/signup', ok)).status, 400); // no name
+    const r = await call('POST', '/api/signup', { ...ok, fullName: 'Ada Lovelace', studentId: '2026-CSE/042' });
+    assert.equal(r.status, 201);
+    assert.deepEqual([r.json.user.fullName, r.json.user.studentId], ['Ada Lovelace', '2026-CSE/042']);
+    const me = await call('GET', '/api/me', undefined, r.cookie);
+    assert.deepEqual([me.json.user.fullName, me.json.user.studentId], ['Ada Lovelace', '2026-CSE/042']);
+    const noId = await call('POST', '/api/signup', { email: 'no-id@example.com', password: 'password-123', fullName: 'Grace Hopper' });
+    assert.equal(noId.status, 201);
+    assert.equal(noId.json.user.studentId, null);
+    const login = await call('POST', '/api/login', { email: 'no-id@example.com', password: 'password-123' });
+    assert.equal(login.json.user.fullName, 'Grace Hopper');
   });
 
   let cookie;
   await t.test('signup then me', async () => {
-    const r = await call('POST', '/api/signup', { email: 'Ada@Example.com', password: 'analytical-engine' });
+    const r = await call('POST', '/api/signup', { email: 'Ada@Example.com', password: 'analytical-engine', fullName: 'Test User' });
     assert.equal(r.status, 201);
     assert.equal(r.json.user.email, 'ada@example.com');
     assert.match(r.raw, /HttpOnly/i);
@@ -87,7 +119,7 @@ test('accounts API against Postgres', { skip: !DB_URL && 'DATABASE_URL not set' 
   });
 
   await t.test('duplicate email (any case) is rejected', async () => {
-    assert.equal((await call('POST', '/api/signup', { email: 'ADA@example.com', password: 'another-password' })).status, 409);
+    assert.equal((await call('POST', '/api/signup', { email: 'ADA@example.com', password: 'another-password', fullName: 'Test User' })).status, 409);
   });
 
   await t.test('login: wrong password fails, right password works', async () => {
@@ -109,7 +141,7 @@ test('accounts API against Postgres', { skip: !DB_URL && 'DATABASE_URL not set' 
   });
 
   await t.test('workspaces are private per user', async () => {
-    const other = await call('POST', '/api/signup', { email: 'bob@example.com', password: 'bob-password-1' });
+    const other = await call('POST', '/api/signup', { email: 'bob@example.com', password: 'bob-password-1', fullName: 'Test User' });
     assert.equal((await call('GET', '/api/workspace', undefined, other.cookie)).json.workspace, null);
   });
 

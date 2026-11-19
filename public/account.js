@@ -150,8 +150,11 @@
     $('auth-switch').textContent = signup ? 'Log in' : 'Sign up';
     $('auth-password').autocomplete = signup ? 'new-password' : 'current-password';
     $('auth-hint').hidden = !signup;
+    $('auth-name-row').hidden = !signup;
+    $('auth-sid-row').hidden = !signup;
     $('auth-email-label').textContent = signup ? 'Email' : 'Email or username';
     showError('');
+    if (signup && $('auth-dialog').open) $('auth-name').focus(); // the first empty field
   }
 
   function openDialog() {
@@ -172,13 +175,18 @@
     btn.disabled = true;
     showError('');
     try {
-      const r = await call('POST', mode === 'signup' ? '/signup' : '/login', {
+      const signup = mode === 'signup';
+      if (signup && $('auth-name').value.trim().length < 2) { showError('Enter your full name.'); $('auth-name').focus(); return; }
+      const r = await call('POST', signup ? '/signup' : '/login', {
         email: $('auth-email').value,
         password: $('auth-password').value,
+        ...(signup ? { fullName: $('auth-name').value, studentId: $('auth-sid').value } : {}),
       });
       if (!r.ok) { showError((r.json && r.json.error) || 'Something went wrong. Try again.'); return; }
       user = r.json.user;
       $('auth-password').value = '';
+      $('auth-name').value = '';
+      $('auth-sid').value = '';
       $('auth-dialog').close();
       renderButton();
       await syncAfterLogin();

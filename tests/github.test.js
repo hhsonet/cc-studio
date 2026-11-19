@@ -76,6 +76,13 @@ function fakeGithub() {
         commit: { message: `${c.message}\n\nlong body`, author: { name: 'Octo Cat', date: '2026-11-18T10:00:00Z' } }, author: { login: 'octo' },
       })));
     }
+    const cm = /^\/commits\/([0-9a-f]+)$/i.exec(rest);
+    if (cm) {
+      if (cm[1].startsWith('dead')) return reply(404, { message: 'No commit found for SHA' });
+      return reply(200, { sha: cm[1], commit: { message: 'Fix\n\nlong body' }, stats: { additions: 3, deletions: 1 },
+        files: [{ filename: 'src/main.c', status: 'modified', additions: 2, deletions: 1 }, { filename: 'NOTES.md', status: 'added', additions: 1, deletions: 0 },
+          { filename: 'old/x.c', previous_filename: 'x.c', status: 'renamed', additions: 0, deletions: 0 }, { filename: 'odd.c', status: 'copied', additions: 'x', deletions: null }] });
+    }
     if (rest === '/git/ref/heads/main') return reply(200, { object: { sha: repo.commits[repo.commits.length - 1] } });
     if (/^\/git\/commits\/c\d+$/.test(rest) && (options.method || 'GET') === 'GET') return reply(200, { tree: { sha: repo.treeSha } });
     if (rest === '/git/trees/main' && u.search === '?recursive=1') {
@@ -141,14 +148,14 @@ test('GitHub connect and export', { skip: !DB_URL && 'DATABASE_URL not set' }, a
     const text = await res.text();
     return { status: res.status, json: text ? JSON.parse(text) : null, cookie: (res.headers.get('set-cookie') || '').split(';')[0] };
   };
-  const me = await call(on.base, 'POST', '/api/signup', { email: 'g@example.com', password: 'password-123' });
+  const me = await call(on.base, 'POST', '/api/signup', { email: 'g@example.com', password: 'password-123', fullName: 'Test User' });
   const cookie = me.cookie;
   const api = (method, path, body) => call(on.base, method, `/api/github${path}`, body, cookie);
   const files = { 'main.c': 'int main(void){return 0;}', 'src/util.h': '#pragma once' };
 
   await t.test('needs a login, and reports when the server has no GitHub app', async () => {
     assert.equal((await call(on.base, 'GET', '/api/github/status')).status, 401);
-    const off2 = await call(off.base, 'POST', '/api/signup', { email: 'o@example.com', password: 'password-123' });
+    const off2 = await call(off.base, 'POST', '/api/signup', { email: 'o@example.com', password: 'password-123', fullName: 'Test User' });
     assert.deepEqual((await call(off.base, 'GET', '/api/github/status', undefined, off2.cookie)).json, { enabled: false });
     assert.equal((await call(off.base, 'POST', '/api/github/export', { repo: 'x', files }, off2.cookie)).status, 503);
   });
@@ -248,11 +255,22 @@ test('GitHub connect and export', { skip: !DB_URL && 'DATABASE_URL not set' }, a
     assert.equal(r.json.commits[0].author, 'octo');
     assert.equal(r.json.commits[0].sha.length, 7);
     assert.ok(r.json.commits[0].url.startsWith('https://github.com/'));
+    assert.match(r.json.commits[0].fullSha, /^[0-9a-f]{10,40}$/); // the full id, so the changed files can be looked up
+    const d = await api('GET', `/commits/${r.json.commits[0].fullSha}`);
+    assert.equal(d.status, 200);
+    assert.deepEqual(d.json.files.map((f) => [f.path, f.status]), [['src/main.c', 'modified'], ['NOTES.md', 'added'], ['old/x.c', 'renamed'], ['odd.c', 'modified']]); // unknown status becomes modified
+    assert.equal(d.json.files[2].from, 'x.c');
+    assert.equal(d.json.files[3].additions, 0); // junk counts become 0
+    assert.deepEqual([d.json.additions, d.json.deletions, d.json.total], [3, 1, 4]);
+    assert.equal((await api('GET', '/commits/not-a-sha')).status, 400);
+    assert.equal((await api('GET', '/commits/..%2F..%2Fuser')).status, 400); // a path is not a commit id, so it never reaches GitHub
+    assert.equal((await api('GET', '/commits/dead0000000')).status, 404);
+    assert.equal((await call(on.base, 'GET', '/api/github/commits/abc1234')).status, 401);
     gh.repos.get('proj').log = []; // an empty repository
     assert.deepEqual((await api('GET', '/commits')).json.commits, []);
     assert.equal((await api('GET', '/commits')).json.empty, true);
     gh.repos.get('proj').log = [{ sha: 'c0', message: 'Initial commit' }, { sha: 'c1', message: 'First version' }, { sha: 'c2', message: 'Fix' }];
-    const other = await call(on.base, 'POST', '/api/signup', { email: 'hist@example.com', password: 'password-123' });
+    const other = await call(on.base, 'POST', '/api/signup', { email: 'hist@example.com', password: 'password-123', fullName: 'Test User' });
     assert.equal((await call(on.base, 'GET', '/api/github/commits', undefined, other.cookie)).status, 409); // not connected
     assert.equal((await call(on.base, 'GET', '/api/github/commits')).status, 401);
   });
@@ -271,7 +289,7 @@ test('GitHub connect and export', { skip: !DB_URL && 'DATABASE_URL not set' }, a
   });
 
   await t.test('pull and list need a connected account; unlinking keeps the connection', async () => {
-    const other = await call(on.base, 'POST', '/api/signup', { email: 'h@example.com', password: 'password-123' });
+    const other = await call(on.base, 'POST', '/api/signup', { email: 'h@example.com', password: 'password-123', fullName: 'Test User' });
     assert.equal((await call(on.base, 'GET', '/api/github/repos', undefined, other.cookie)).status, 409);
     assert.equal((await call(on.base, 'POST', '/api/github/import', {}, other.cookie)).status, 409);
     assert.equal((await call(on.base, 'POST', '/api/github/import', {})).status, 401);
@@ -356,7 +374,7 @@ test('GitHub connect and export', { skip: !DB_URL && 'DATABASE_URL not set' }, a
   });
 
   await t.test('one GitHub account cannot be tied to two cc-studio accounts', async () => {
-    const other = await call(on.base, 'POST', '/api/signup', { email: 'dup@example.com', password: 'password-123' });
+    const other = await call(on.base, 'POST', '/api/signup', { email: 'dup@example.com', password: 'password-123', fullName: 'Test User' });
     gh.user = { login: 'octo', id: 4242 }; // already belongs to g@
     gh.polls = 1;
     await call(on.base, 'POST', '/api/github/device/start', {}, other.cookie);
@@ -420,7 +438,7 @@ test('GitHub connect and export', { skip: !DB_URL && 'DATABASE_URL not set' }, a
 
   await t.test('connect for push and pull: needs a login, asks for the repository permission, links the account', async () => {
     assert.equal((await hop(web.base, '/api/github/oauth/connect')).location, '/?auth=login_first');
-    const user = await call(web.base, 'POST', '/api/signup', { email: 'webconnect@example.com', password: 'password-123' });
+    const user = await call(web.base, 'POST', '/api/signup', { email: 'webconnect@example.com', password: 'password-123', fullName: 'Test User' });
     const go = await hop(web.base, '/api/github/oauth/connect', user.cookie);
     assert.equal(new URL(go.location).searchParams.get('scope'), 'public_repo');
     const state = new URL(go.location).searchParams.get('state');
@@ -434,7 +452,7 @@ test('GitHub connect and export', { skip: !DB_URL && 'DATABASE_URL not set' }, a
     assert.equal((await db.query("SELECT github_id FROM users WHERE email = 'webconnect@example.com'")).rows[0].github_id, '9100');
 
     // an account that already belongs to someone else is refused
-    const other = await call(web.base, 'POST', '/api/signup', { email: 'webother@example.com', password: 'password-123' });
+    const other = await call(web.base, 'POST', '/api/signup', { email: 'webother@example.com', password: 'password-123', fullName: 'Test User' });
     const go2 = await hop(web.base, '/api/github/oauth/connect', other.cookie);
     const s2 = new URL(go2.location).searchParams.get('state');
     const refused = await hop(web.base, `/api/github/oauth/callback?code=good-code&state=${s2}`, `${other.cookie}; ${go2.cookie}`);

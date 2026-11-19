@@ -16,3 +16,5 @@ select { display: block; width: 100%; margin-top: 5px; padding: 8px 10px; backgr
 .btn.small { padding: 4px 10px; font-size: 12px; }
 td .actions-cell { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
 tr td { vertical-align: middle; }
+
+td.user .sid { margin-left: 6px; color: var(--mu2); font: 11px var(--mono); }

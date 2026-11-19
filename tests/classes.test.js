@@ -29,7 +29,7 @@ test('classes, teachers and students', { skip: !DB_URL && 'DATABASE_URL not set'
     return { status: res.status, json: text ? JSON.parse(text) : null, cookie: (res.headers.get('set-cookie') || '').split(';')[0] };
   };
   const signup = async (email, role) => {
-    const r = await call('POST', '/api/signup', { email, password: 'password-123' });
+    const r = await call('POST', '/api/signup', { email, password: 'password-123', fullName: 'Test User' });
     assert.equal(r.status, 201);
     assert.equal(r.json.user.role, 'student'); // everyone starts as a student
     if (role !== 'student') {

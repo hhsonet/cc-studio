@@ -260,11 +260,42 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .git-msg { margin: 0; padding: 14px 16px; color: var(--mu); font: 13px/1.5 var(--sans); }
 .git-msg a { color: var(--ac2); }
 .git-list { list-style: none; margin: 0; padding: 0; }
-.commit { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; padding: 9px 16px; border-bottom: 1px solid var(--bd); }
-.commit-msg { flex: 1 1 100%; min-width: 0; overflow-wrap: anywhere; color: var(--fg); text-decoration: none; font: 500 13px var(--sans); }
-a.commit-msg:hover { color: var(--ac2); }
+/* The graph: one line down the left through every commit, a dot on it, the newest one filled. */
+.commit { position: relative; border-bottom: 1px solid var(--bd); }
+.commit::before { content: ''; position: absolute; left: 22px; top: 0; bottom: 0; width: 2px; background: var(--bd2); }
+.commit:first-child::before { top: 21px; }
+.commit:last-child::before { bottom: auto; height: 21px; }
+.commit::after { content: ''; position: absolute; left: 17px; top: 15px; width: 12px; height: 12px; box-sizing: border-box; border-radius: 50%; background: var(--bg); border: 2px solid var(--mu2); }
+.commit:first-child::after { background: var(--ac); border-color: var(--ac); box-shadow: 0 0 0 4px var(--acbg); }
+.commit.open::after { border-color: var(--ac); }
+.commit-toggle { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; width: 100%; padding: 9px 56px 9px 44px; background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.commit-toggle:hover { background: var(--hov); }
+.commit-toggle:focus-visible { outline: 2px solid var(--ac); outline-offset: -2px; }
+.commit-msg { flex: 1 1 100%; min-width: 0; overflow-wrap: anywhere; color: var(--fg); font: 500 13px var(--sans); }
 .commit-meta { color: var(--mu2); font: 11px var(--mono); }
 .commit-latest { font-size: 10px; padding: 1px 6px; }
+.commit-chev { position: absolute; right: 14px; top: 13px; width: 16px; height: 16px; color: var(--mu2); pointer-events: none; transition: transform .15s ease; }
+.commit.open .commit-chev { transform: rotate(180deg); color: var(--ac2); }
+.commit-ext { position: absolute; right: 36px; top: 8px; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 5px; color: var(--mu2); }
+.commit-ext:hover { color: var(--ac2); background: var(--hov); }
+.commit-ext-icon { width: 14px; height: 14px; }
+.commit-detail { padding: 0 16px 12px 44px; }
+.chg-note, .chg-sum, .chg-body { margin: 2px 0 8px; font: 12px/1.5 var(--sans); color: var(--mu); }
+.chg-body { white-space: pre-wrap; overflow-wrap: anywhere; }
+.chg-sum .add, .chg-n .add { color: var(--ac2); }
+.chg-sum .del, .chg-n .del { color: var(--err); }
+.chg { list-style: none; margin: 0; padding: 6px 4px; max-height: 260px; overflow: auto; background: var(--inp); border: 1px solid var(--bd2); border-radius: 6px; font: 12px/1.75 var(--mono); scrollbar-width: thin; scrollbar-color: var(--bd2) transparent; }
+.chg li { display: flex; align-items: baseline; gap: 8px; padding: 0 8px 0 calc(var(--d, 0) * 14px + 8px); }
+.chg-dir { color: var(--mu); }
+.chg-name { flex: 1; min-width: 0; overflow-wrap: anywhere; color: var(--fg); }
+.chg-st { flex: none; width: 12px; text-align: center; font-weight: 600; }
+.chg-file.added .chg-st { color: var(--ac2); }
+.chg-file.modified .chg-st { color: var(--warn); }
+.chg-file.removed .chg-st { color: var(--err); }
+.chg-file.removed .chg-name { color: var(--mu); text-decoration: line-through; text-decoration-color: var(--bd2); }
+.chg-file.renamed .chg-st { color: var(--blue); }
+.chg-n { flex: none; color: var(--mu2); }
+@media (prefers-reduced-motion: reduce) { .commit-chev { transition: none; } }
 
 /* Continue with GitHub */
 .auth-gh { margin-top: 14px; }
@@ -309,3 +340,18 @@ body.resizing .sidebar, body.resizing .panel { transition: none; }
 @media (max-width: 520px) {
   .chip { display: none; } /* the file's language is clear from its name in the sidebar */
 }
+
+/* Pull confirmation: the list of local files that GitHub's version will replace. */
+#gh-pull-dialog { width: min(440px, calc(100vw - 32px)); }
+.gh-pull-files { list-style: none; margin: 0 0 12px; padding: 8px 10px; max-height: 180px; overflow-y: auto; background: var(--inp); border: 1px solid var(--bd2); border-radius: 6px; font: 12px/1.7 var(--mono); color: var(--fg); scrollbar-width: thin; scrollbar-color: var(--bd2) transparent; }
+.gh-pull-files li { overflow-wrap: anywhere; }
+
+/* Push progress: one request to GitHub with no steps to report, so the bar is indeterminate. */
+.gh-progress { height: 4px; margin: 2px 0 8px; border-radius: 2px; background: var(--bd2); overflow: hidden; }
+.gh-progress span { display: block; width: 38%; height: 100%; border-radius: 2px; background: var(--ac); animation: gh-slide 1.1s ease-in-out infinite; }
+@keyframes gh-slide { from { transform: translateX(-100%); } to { transform: translateX(270%); } }
+.gh-progress-text { margin: 0 0 12px; }
+#gh-export:disabled { cursor: progress; }
+@media (prefers-reduced-motion: reduce) { .gh-progress span { width: 100%; animation: none; opacity: .55; } }
+
+.auth-opt { font-weight: 400; color: var(--mu2); }

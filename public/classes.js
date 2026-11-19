@@ -31,7 +31,7 @@
     return n;
   }
   const button = (text, cls, onClick) => el('button', { type: 'button', className: `btn ${cls || ''}`.trim(), textContent: text, onclick: onClick });
-  const who = (u) => u.username || u.email;
+  const who = (u) => u.fullName || u.username || u.email;
 
   let role = null; // 'teacher' | 'student'
 
@@ -161,7 +161,7 @@
           if (r.ok) showClass(c.id); else msg('d-msg', errText(r, 'Could not remove.'), 'err');
         }));
       const tr = el('tr', null,
-        el('td', { className: 'user', textContent: who(s) }),
+        el('td', { className: 'user' }, who(s), s.studentId ? el('span', { className: 'sid', textContent: s.studentId }) : null),
         el('td', { textContent: fmtDate(s.joinedAt) }),
         el('td', { textContent: fmtDateTime(s.savedAt) }),
         el('td', { textContent: String(s.fileCount || 0) }));
