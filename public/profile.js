@@ -102,15 +102,166 @@
     github_other: 'This cc-studio account is already tied to a different GitHub account.',
   };
 
+  /**
+   * The repository picker: a themed dropdown (the browser's <datalist> can't be styled).
+   * Type to filter by name or description, ↑/↓ + Enter to pick, Esc to close. A name that is not in the list is fine:
+   * it shows up as "Use ... as a new repository", and Link offers to create it. Opens upward when there is no room below.
+   */
+  const repoCombo = (() => {
+    const input = $('gh-repo');
+    const list = $('gh-repo-list');
+    const toggle = $('gh-repo-toggle');
+    const VALID_NAME = /^(?!\.{1,2}$)[A-Za-z0-9._-]{1,100}$/; // same rule as the server
+    const SVG = 'http://www.w3.org/2000/svg';
+    let repos = [];
+    let rows = []; // what is on screen: { name, description?, linked?, create? }
+    let active = -1;
+
+    const icon = (d, cls) => {
+      const svg = document.createElementNS(SVG, 'svg');
+      svg.setAttribute('viewBox', '0 0 16 16');
+      svg.setAttribute('aria-hidden', 'true');
+      svg.setAttribute('class', cls);
+      const path = document.createElementNS(SVG, 'path');
+      path.setAttribute('d', d);
+      path.setAttribute('fill', 'none');
+      path.setAttribute('stroke', 'currentColor');
+      path.setAttribute('stroke-width', '1.7');
+      path.setAttribute('stroke-linecap', 'round');
+      path.setAttribute('stroke-linejoin', 'round');
+      svg.append(path);
+      return svg;
+    };
+    const CHECK = 'M3.5 8.5l3 3 6-7';
+    const PLUS = 'M8 3.5v9M3.5 8h9';
+
+    const isOpen = () => !list.hidden;
+    function setActive(i) {
+      active = i;
+      list.querySelectorAll('[role=option]').forEach((li, n) => {
+        li.setAttribute('aria-selected', String(n === i));
+        if (n === i) { li.scrollIntoView({ block: 'nearest' }); input.setAttribute('aria-activedescendant', li.id); }
+      });
+      if (i < 0) input.removeAttribute('aria-activedescendant');
+    }
+    function place() { // open upward when the list would run off the bottom of the window
+      list.classList.remove('up');
+      const below = window.innerHeight - input.getBoundingClientRect().bottom - 12;
+      const above = input.getBoundingClientRect().top - 12;
+      if (list.offsetHeight > below && above > below) list.classList.add('up');
+    }
+    function close() { list.hidden = true; input.setAttribute('aria-expanded', 'false'); setActive(-1); }
+    function pick(i) { input.value = rows[i].name; close(); input.focus(); }
+
+    function render() {
+      const typed = input.value.trim();
+      const q = typed.toLowerCase();
+      const linked = ghStatus && ghStatus.repo;
+      rows = repos
+        .filter((r) => !q || r.name.toLowerCase().includes(q) || (r.description || '').toLowerCase().includes(q))
+        .map((r) => ({ name: r.name, description: r.description, linked: r.name === linked }));
+      const exact = repos.some((r) => r.name.toLowerCase() === q);
+      if (typed && !exact && VALID_NAME.test(typed)) rows.push({ name: typed, create: true });
+
+      list.replaceChildren();
+      rows.forEach((r, n) => {
+        const li = document.createElement('li');
+        li.id = `gh-repo-opt-${n}`;
+        li.setAttribute('role', 'option');
+        if (r.create) {
+          li.className = 'combo-create';
+          li.append(icon(PLUS, 'combo-glyph'));
+          const t = document.createElement('span');
+          t.className = 'combo-main';
+          const lead = document.createElement('span');
+          lead.className = 'combo-desc';
+          lead.textContent = 'Create a new public repository';
+          const nm = document.createElement('span');
+          nm.className = 'combo-name';
+          nm.textContent = r.name;
+          t.append(nm, lead);
+          li.append(t);
+        } else {
+          const t = document.createElement('span');
+          t.className = 'combo-main';
+          const nm = document.createElement('span');
+          nm.className = 'combo-name';
+          nm.textContent = r.name;
+          t.append(nm);
+          if (r.description) {
+            const d = document.createElement('span');
+            d.className = 'combo-desc';
+            d.textContent = r.description;
+            t.append(d);
+          }
+          li.append(t);
+          if (r.linked) {
+            li.classList.add('is-linked');
+            const mark = icon(CHECK, 'combo-check');
+            mark.setAttribute('role', 'img');
+            mark.setAttribute('aria-label', 'Currently linked');
+            li.append(mark);
+          }
+        }
+        li.addEventListener('mousedown', (e) => { e.preventDefault(); pick(n); }); // before the input loses focus
+        li.addEventListener('mousemove', () => { if (active !== n) setActive(n); });
+        list.append(li);
+      });
+      if (!rows.length) {
+        const li = document.createElement('li');
+        li.className = 'combo-empty';
+        li.setAttribute('role', 'presentation');
+        li.textContent = !repos.length ? 'No repositories on your GitHub yet. Type a name to create one.' : `Nothing matches "${typed}". Names can use letters, digits, . _ -`;
+        list.append(li);
+      }
+      const hint = document.createElement('li');
+      hint.className = 'combo-hint';
+      hint.setAttribute('role', 'presentation');
+      for (const [k, label] of [['↑↓', 'move'], ['Enter', 'choose'], ['Esc', 'close']]) {
+        const kbd = document.createElement('kbd');
+        kbd.textContent = k;
+        hint.append(kbd, ` ${label} `);
+      }
+      list.append(hint);
+      // Start on the top match so Enter picks it, unless what is typed already is a full name (then Enter submits the form).
+      setActive(typed && rows.length && !exact ? 0 : -1);
+    }
+    function open() {
+      render();
+      list.hidden = false;
+      input.setAttribute('aria-expanded', 'true');
+      place();
+    }
+
+    input.addEventListener('focus', open);
+    input.addEventListener('input', open);
+    toggle.addEventListener('mousedown', (e) => { e.preventDefault(); if (isOpen()) close(); else { input.focus(); open(); } });
+    input.addEventListener('blur', close);
+    window.addEventListener('resize', () => { if (isOpen()) place(); });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (!isOpen()) open();
+        if (!rows.length) return;
+        setActive((active + (e.key === 'ArrowDown' ? 1 : -1) + rows.length) % rows.length);
+      } else if (e.key === 'Enter' && isOpen() && active >= 0) {
+        e.preventDefault(); // choose the highlighted row instead of submitting
+        pick(active);
+      } else if (e.key === 'Escape' && isOpen()) {
+        e.preventDefault();
+        close();
+      }
+    });
+    return { setRepos(r) { repos = r || []; if (isOpen()) render(); } };
+  })();
+
   async function loadGithub() {
     const r = await gcall('GET', '/status');
     ghStatus = r.ok ? r.json : null;
     showGithub();
     if (ghStatus && ghStatus.connected) {
-      const list = $('gh-repo-list');
       const repos = await gcall('GET', '/repos');
-      list.replaceChildren();
-      if (repos.ok) for (const x of repos.json.repos) list.append(new Option(x.description || '', x.name));
+      repoCombo.setRepos(repos.ok ? repos.json.repos : []);
     }
     const problem = AUTH_MESSAGES[new URLSearchParams(window.location.search).get('auth')];
     if (problem) {

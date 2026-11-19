@@ -2,7 +2,9 @@
 
 require('dotenv').config();
 
+const fs = require('node:fs');
 const path = require('node:path');
+const crypto = require('node:crypto');
 const http = require('node:http');
 const express = require('express');
 const helmet = require('helmet');
@@ -14,6 +16,31 @@ const { createClassesRouter } = require('./lib/classes');
 const { createGithubRouter } = require('./lib/github');
 const { createSettingsStore, createSettingsRouter } = require('./lib/settings');
 const { createAdminRouter } = require('./lib/admin');
+
+/**
+ * Rewrite local stylesheet and script URLs in a page to carry a short hash of the file (profile.css -> profile.css?v=1a2b3c4d).
+ * A CDN in front (Cloudflare) can keep .css/.js for hours whatever this server says; a changed file now gets a new URL, so
+ * visitors never run new HTML with old CSS or JS. The page itself is sent with no-cache, so it is always fresh.
+ */
+function createAssetVersioner(dir) {
+  const cache = new Map();
+  const hashOf = (file) => {
+    try {
+      const { mtimeMs } = fs.statSync(file);
+      const hit = cache.get(file);
+      if (hit && hit.mtimeMs === mtimeMs) return hit.hash;
+      const hash = crypto.createHash('sha1').update(fs.readFileSync(file)).digest('hex').slice(0, 8);
+      cache.set(file, { mtimeMs, hash });
+      return hash;
+    } catch {
+      return null;
+    }
+  };
+  return (html) => html.replace(/\b(href|src)="(\/?[\w.-]+\.(?:css|js))"/g, (whole, attr, ref) => {
+    const hash = hashOf(path.join(dir, ref));
+    return hash ? `${attr}="${ref}?v=${hash}"` : whole;
+  });
+}
 
 /**
  * Build the Express app: security headers plus the static page. All code execution
@@ -81,7 +108,17 @@ function createApp({ runner, db, github = {}, logger = console } = {}) {
     const q = req.originalUrl.indexOf('?');
     res.redirect(301, (m[1] === 'index' ? '/' : `/${m[1]}`) + (q === -1 ? '' : req.originalUrl.slice(q)));
   });
-  app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
+  const publicDir = path.join(__dirname, 'public');
+  const versioned = createAssetVersioner(publicDir);
+  app.get(['/', '/:page'], (req, res, next) => {
+    const name = req.path === '/' ? 'index' : req.params.page;
+    if (!/^[A-Za-z0-9_-]+$/.test(name)) return next();
+    fs.readFile(path.join(publicDir, `${name}.html`), 'utf8', (err, html) => {
+      if (err) return next();
+      res.set('Cache-Control', 'no-cache').type('html').send(versioned(html));
+    });
+  });
+  app.use(express.static(publicDir, { extensions: ['html'] }));
 
   // eslint-disable-next-line no-unused-vars
   app.use((err, req, res, next) => {

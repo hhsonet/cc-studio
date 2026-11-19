@@ -78,10 +78,14 @@
             <div><dt>Repository</dt><dd id="gh-repo-now"></dd></div>
           </dl>
           <form id="gh-repo-form" novalidate>
-            <label><span id="gh-repo-label">Link a repository</span>
-              <input id="gh-repo" type="text" list="gh-repo-list" maxlength="100" autocomplete="off" spellcheck="false" placeholder="Choose or type a repository name">
-              <datalist id="gh-repo-list"></datalist>
-            </label>
+            <div class="field">
+              <label for="gh-repo" id="gh-repo-label">Link a repository</label>
+              <div class="combo" id="gh-combo">
+                <input id="gh-repo" type="text" role="combobox" aria-expanded="false" aria-controls="gh-repo-list" aria-autocomplete="list" maxlength="100" autocomplete="off" spellcheck="false" placeholder="Search or type a repository name">
+                <button id="gh-repo-toggle" class="combo-toggle" type="button" tabindex="-1" aria-label="Show repositories"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+                <ul id="gh-repo-list" class="combo-list" role="listbox" hidden></ul>
+              </div>
+            </div>
             <p class="muted small">Your editor's Push and Pull buttons work on this one repository. Its files live in a folder with the same name.</p>
             <div class="actions gh-actions">
               <button id="gh-unlink" class="btn" type="button" hidden>Unlink repository</button>
